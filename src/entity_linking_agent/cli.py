@@ -406,6 +406,8 @@ def print_response(response: dict) -> None:
         print(f"  状态: {item['status']}    置信度: {item['confidence']}")
         print(f"  标准实体: {item.get('canonical_name') or '-'}")
         print(f"  实体ID: {item.get('linked_entity_id') or '-'}")
+        if item.get("coreference_source_mention_id"):
+            print(f"  共指来源: {item['coreference_source_mention_id']}")
         rationale = item.get("evidence", {}).get("rationale", [])
         print(f"  依据: {' / '.join(rationale) if rationale else '-'}")
         print("  Top候选:")
