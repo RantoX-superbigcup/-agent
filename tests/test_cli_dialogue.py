@@ -19,6 +19,23 @@ class FakeDeepSeekClient:
             "kb_id": "ccks2019-v1",
             "text": "南京南站:坐高铁在南京南站下。南京南站",
             "mentions": ["南京南站", "高铁"],
+            "mention_aliases": {},
+            "run_requested": False,
+            "reply": None,
+            "confidence": 0.95,
+        }
+
+
+class FakeMovieDeepSeekClient:
+    is_configured = True
+
+    def analyze_turn(self, user_text: str, current_state: dict) -> dict:
+        return {
+            "action": "update",
+            "kb_id": None,
+            "text": "李导演的《断背山》真是令人动人",
+            "mentions": ["李导演", "断背山"],
+            "mention_aliases": {"李导演": ["李安"]},
             "run_requested": False,
             "reply": None,
             "confidence": 0.95,
@@ -62,6 +79,16 @@ class ConversationalCliTests(unittest.TestCase):
         self.assertEqual(agent.state.mention_texts, ["南京南站", "高铁"])
         self.assertEqual(agent.last_dialogue_route, "deepseek")
         self.assertEqual(agent.last_dialogue_nodes, ["llm_understand", "finalize_action"])
+
+    def test_movie_intent_infers_ccks_and_keeps_alias_expansion(self) -> None:
+        agent = ConversationalAgent(llm_client=FakeMovieDeepSeekClient())
+
+        reply = agent.handle_turn("李导演的《断背山》真是令人动人 其中实体是李导演和断背山")
+
+        self.assertIn("信息已经齐了", reply)
+        self.assertEqual(agent.state.kb_id, "ccks2019-v1")
+        self.assertEqual(agent.state.mention_texts, ["李导演", "断背山"])
+        self.assertEqual(agent.state.mention_aliases, {"李导演": ["李安"]})
 
 
 if __name__ == "__main__":

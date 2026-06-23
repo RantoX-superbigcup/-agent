@@ -27,6 +27,14 @@ DeepSeek 启用后，Agent 会先用模型理解自然语言、长文本、知�
 .\.venv\Scripts\python -m entity_linking_agent.cli --no-llm
 ```
 
+DeepSeek 还会辅助做知识库路由和 mention 归一化，例如：
+
+```text
+李导演的《断背山》真是令人动人 其中实体是李导演和断背山
+```
+
+会优先切到 `ccks2019-v1`，并把 `李导演` 扩展为候选别名 `李安`，最终仍保留原始 mention 展示。
+
 启动后可以多轮对话：
 
 ```text
@@ -150,6 +158,7 @@ Invoke-RestMethod `
 - 共指兜底：支持 `该公司/该机构` 这类简单共指回链。
 - 留痕解释：输出候选分数、命中别名、关键词依据和决策日志。
 - LLM 对话增强：检测到 `DEEPSEEK_API_KEY` 时启用 DeepSeek，未配置时自动保持本地规则模式。
+- LLM 别名扩展：支持把 `李导演` 这类上下文代称扩展为 `李安` 等候选别名，再交给可解释链接流程决策。
 
 ## LangGraph 工作流
 

@@ -132,6 +132,35 @@ class Topic10EntityLinkingServiceTests(unittest.TestCase):
         self.assertTrue(result["needs_review"])
         self.assertIn("human_review_required", result["evidence"]["rationale"])
 
+    def test_llm_alias_expansion_links_surface_mention(self) -> None:
+        response = self.service.link(
+            text="李导演的《断背山》真是令人动人。",
+            mentions=[
+                MentionRecord(
+                    mention_id="m_director",
+                    text="李导演",
+                    entity_type="Human",
+                    sentence="李导演的《断背山》真是令人动人。",
+                    metadata={"candidate_aliases": ["李安"]},
+                )
+            ],
+            knowledge_base_id="inline-alias-expansion-test",
+            inline_entities=[
+                KnowledgeBaseEntity(
+                    entity_id="person:ang_lee",
+                    canonical_name="李安",
+                    aliases=["李安", "Ang Lee"],
+                    entity_type="Human",
+                    keywords=["导演", "断背山", "电影"],
+                )
+            ],
+        )
+
+        result = response["results"][0]
+        self.assertEqual(result["status"], "linked")
+        self.assertEqual(result["linked_entity_id"], "person:ang_lee")
+        self.assertIn("llm_alias_expansion", result["candidates"][0]["reasons"])
+
     def test_coreference_fallback(self) -> None:
         response = self.service.link(
             text="国网智能科技正在建设算法平台。该公司强调数据治理能力。",

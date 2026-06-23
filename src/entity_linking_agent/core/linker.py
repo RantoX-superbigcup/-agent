@@ -125,6 +125,7 @@ class EntityLinker:
         context_score = max(context_score, description_score)
         type_bonus = 0.05 if mention.entity_type and mention.entity_type == entity.entity_type else 0.0
         canonical_bonus = 0.03 if normalize_text(mention.text) == normalize_text(entity.canonical_name) else 0.0
+        expansion_bonus = 0.08 if "llm_alias_expansion" in candidate.reasons else 0.0
         prior_score = self.alias_prior.score(mention.text, entity.entity_id)
         prior_bonus = 0.22 * prior_score
         final_score = clamp(
@@ -132,6 +133,7 @@ class EntityLinker:
             + 0.23 * context_score
             + type_bonus
             + canonical_bonus
+            + expansion_bonus
             + prior_bonus
         )
 

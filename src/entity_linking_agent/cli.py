@@ -19,6 +19,20 @@ from entity_linking_agent.llm.deepseek_client import DeepSeekChatClient
 EXIT_WORDS = {"q", "quit", "exit", "退出", "结束", "再见"}
 RUN_WORDS = {"运行", "开始", "链接", "执行", "分析", "识别"}
 RESET_WORDS = {"清空", "重置", "重新来", "重新开始"}
+GENERAL_KB_HINTS = {
+    "《",
+    "》",
+    "电影",
+    "导演",
+    "演员",
+    "主演",
+    "歌曲",
+    "小说",
+    "作品",
+    "人物",
+    "地点",
+}
+ENERGY_KB_HINTS = {"电网", "国网", "南方电网", "配电", "能源", "风电", "光伏"}
 
 
 @dataclass
@@ -26,6 +40,7 @@ class DialogueState:
     kb_id: str = "sample-energy-v1"
     text: str = ""
     mention_texts: list[str] = field(default_factory=list)
+    mention_aliases: dict[str, list[str]] = field(default_factory=dict)
 
 
 def parse_args() -> argparse.Namespace:
@@ -119,6 +134,7 @@ class ConversationalAgent:
                 "has_text": bool(self.state.text),
                 "text_preview": self.state.text[:300],
                 "mentions": self.state.mention_texts,
+                "mention_aliases": self.state.mention_aliases,
             },
         )
         self.last_dialogue_route = workflow_result.get("route", "unknown")
@@ -133,14 +149,30 @@ class ConversationalAgent:
             self.state = DialogueState()
             return "已清空上下文。现在请告诉我知识库、文本和 mention。"
 
-        if action["kb_id"]:
-            self.state.kb_id = action["kb_id"]
         if action["text"]:
             self.state.text = action["text"]
         if action["mentions"]:
             self.state.mention_texts = action["mentions"]
+        if action.get("mention_aliases"):
+            self.state.mention_aliases = action["mention_aliases"]
+        if action["kb_id"]:
+            self.state.kb_id = action["kb_id"]
+        else:
+            inferred_kb_id = infer_kb_id(
+                text=self.state.text,
+                mention_texts=self.state.mention_texts,
+                current_kb_id=self.state.kb_id,
+            )
+            if inferred_kb_id:
+                self.state.kb_id = inferred_kb_id
 
-        if action["action"] == "reply" and not action["kb_id"] and not action["text"] and not action["mentions"]:
+        if (
+            action["action"] == "reply"
+            and not action["kb_id"]
+            and not action["text"]
+            and not action["mentions"]
+            and not action.get("mention_aliases")
+        ):
             return action["reply"] or "可以，我会结合当前上下文继续处理。"
 
         if action["run_requested"]:
@@ -156,6 +188,7 @@ class ConversationalAgent:
             run_once(
                 text=self.state.text,
                 mention_texts=self.state.mention_texts,
+                mention_aliases=self.state.mention_aliases,
                 kb_id=self.state.kb_id,
                 as_json=False,
             )
@@ -180,14 +213,20 @@ class ConversationalAgent:
         return ""
 
 
-def run_once(text: str, mention_texts: list[str], kb_id: str, as_json: bool) -> None:
+def run_once(
+    text: str,
+    mention_texts: list[str],
+    kb_id: str,
+    as_json: bool,
+    mention_aliases: Optional[dict[str, list[str]]] = None,
+) -> None:
     service = Topic10EntityLinkingService()
-    mentions = build_mentions(text, mention_texts)
+    mentions = build_mentions(text, mention_texts, mention_aliases=mention_aliases)
     inline_entities: Optional[list[KnowledgeBaseEntity]] = None
     request_kb_id = kb_id
 
     if kb_id == "ccks2019-v1":
-        inline_entities = load_ccks_subset(mention_texts)
+        inline_entities = load_ccks_subset(mention_texts, mention_aliases=mention_aliases)
         request_kb_id = "ccks2019-inline"
 
     print("\nAgent：正在执行 LangGraph 实体链接流程...")
@@ -205,8 +244,13 @@ def run_once(text: str, mention_texts: list[str], kb_id: str, as_json: bool) -> 
     print_response(response)
 
 
-def build_mentions(text: str, mention_texts: list[str]) -> list[MentionRecord]:
+def build_mentions(
+    text: str,
+    mention_texts: list[str],
+    mention_aliases: Optional[dict[str, list[str]]] = None,
+) -> list[MentionRecord]:
     mentions: list[MentionRecord] = []
+    mention_aliases = mention_aliases or {}
     cursor = 0
     for index, mention_text in enumerate(mention_texts, start=1):
         start = text.find(mention_text, cursor)
@@ -220,6 +264,7 @@ def build_mentions(text: str, mention_texts: list[str]) -> list[MentionRecord]:
                 start=start if start >= 0 else None,
                 end=end,
                 sentence=text,
+                metadata={"candidate_aliases": mention_aliases.get(mention_text, [])},
             )
         )
         if start >= 0:
@@ -227,12 +272,16 @@ def build_mentions(text: str, mention_texts: list[str]) -> list[MentionRecord]:
     return mentions
 
 
-def load_ccks_subset(mention_texts: list[str]) -> list[KnowledgeBaseEntity]:
+def load_ccks_subset(
+    mention_texts: list[str],
+    mention_aliases: Optional[dict[str, list[str]]] = None,
+) -> list[KnowledgeBaseEntity]:
     config = load_config()
+    alias_texts = expand_candidate_alias_texts(mention_texts, mention_aliases=mention_aliases)
     print("Agent：正在从 CCKS2019 kb_data 按 mention 筛选候选实体...")
     entities = load_ccks2019_entities(
         kb_path=config.ccks2019_kb_path,
-        alias_texts=set(mention_texts),
+        alias_texts=alias_texts,
     )
     print(f"Agent：已筛选候选实体 {len(entities)} 个。")
     return entities
@@ -280,6 +329,28 @@ def build_rule_action(user_text: str, current_state: dict) -> dict:
     )
 
 
+def infer_kb_id(text: str, mention_texts: list[str], current_kb_id: str) -> Optional[str]:
+    if current_kb_id != "sample-energy-v1":
+        return None
+
+    joined = text + " " + " ".join(mention_texts)
+    if any(hint in joined for hint in ENERGY_KB_HINTS):
+        return None
+    if any(hint in joined for hint in GENERAL_KB_HINTS):
+        return "ccks2019-v1"
+    return None
+
+
+def expand_candidate_alias_texts(
+    mention_texts: list[str],
+    mention_aliases: Optional[dict[str, list[str]]] = None,
+) -> set[str]:
+    alias_texts = set(mention_texts)
+    for aliases in (mention_aliases or {}).values():
+        alias_texts.update(aliases)
+    return alias_texts
+
+
 def detect_kb_id(user_text: str) -> Optional[str]:
     if "ccks" in user_text.lower() or "2019" in user_text or "比赛" in user_text:
         return "ccks2019-v1"
@@ -293,6 +364,7 @@ def _rule_action(
     kb_id: Optional[str] = None,
     text: Optional[str] = None,
     mentions: Optional[list[str]] = None,
+    mention_aliases: Optional[dict[str, list[str]]] = None,
     run_requested: bool = False,
     reply: Optional[str] = None,
     confidence: float = 1.0,
@@ -302,6 +374,7 @@ def _rule_action(
         "kb_id": kb_id,
         "text": text,
         "mentions": mentions or [],
+        "mention_aliases": mention_aliases or {},
         "run_requested": run_requested,
         "reply": reply,
         "confidence": confidence,

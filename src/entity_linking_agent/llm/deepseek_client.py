@@ -87,8 +87,12 @@ class DeepSeekChatClient:
                     "任务是理解用户输入，抽取知识库、待链接文本、mention列表和是否立即运行。"
                     "如果用户只是在问能力或闲聊，给出reply，不要编造text。"
                     "如果用户要求你自己识别实体，可以从文本中抽取重要实体mention。"
+                    "如果mention是代称或带角色称谓，例如李导演、张老师，应在mention_aliases中给出可能的标准名。"
+                    "例如根据《断背山》可把李导演扩展为李安，但mentions仍保留用户原文李导演。"
                     "kb_id只能是ccks2019-v1、sample-energy-v1或null。"
-                    "输出字段固定为：action、kb_id、text、mentions、run_requested、reply、confidence。"
+                    "sample-energy-v1只用于国家电网、南方电网、配电、能源等样例领域；"
+                    "电影、人物、地点、作品、通用百科类文本优先选择ccks2019-v1。"
+                    "输出字段固定为：action、kb_id、text、mentions、mention_aliases、run_requested、reply、confidence。"
                     "action取update、run、reply、reset、help或unknown。"
                 ),
             },
@@ -103,6 +107,7 @@ class DeepSeekChatClient:
                             "kb_id": "ccks2019-v1",
                             "text": "南京南站:坐高铁在南京南站下。南京南站",
                             "mentions": ["南京南站", "高铁"],
+                            "mention_aliases": {},
                             "run_requested": True,
                             "reply": None,
                             "confidence": 0.92,
@@ -157,6 +162,22 @@ def normalize_turn_action(payload: dict[str, Any]) -> dict[str, Any]:
             if mention and mention not in mentions:
                 mentions.append(mention)
 
+    mention_aliases: dict[str, list[str]] = {}
+    raw_aliases = payload.get("mention_aliases") or {}
+    if isinstance(raw_aliases, dict):
+        for mention, aliases in raw_aliases.items():
+            mention_text = str(mention).strip()
+            if not mention_text:
+                continue
+            values = aliases if isinstance(aliases, list) else [aliases]
+            mention_aliases[mention_text] = []
+            for item in values:
+                alias = str(item).strip()
+                if alias and alias != mention_text and alias not in mention_aliases[mention_text]:
+                    mention_aliases[mention_text].append(alias)
+            if not mention_aliases[mention_text]:
+                mention_aliases.pop(mention_text, None)
+
     reply = payload.get("reply")
     reply = str(reply).strip() if reply is not None else None
     if not reply:
@@ -173,8 +194,8 @@ def normalize_turn_action(payload: dict[str, Any]) -> dict[str, Any]:
         "kb_id": kb_id,
         "text": text,
         "mentions": mentions,
+        "mention_aliases": mention_aliases,
         "run_requested": bool(payload.get("run_requested")) or action == "run",
         "reply": reply,
         "confidence": confidence,
     }
-

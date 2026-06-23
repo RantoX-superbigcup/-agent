@@ -23,19 +23,26 @@ class CandidateRetriever:
         entities: list[KnowledgeBaseEntity],
         top_k: int,
     ) -> list[CandidateScore]:
-        normalized_mention = normalize_text(mention.text)
+        query_texts = self._query_texts(mention)
+        normalized_queries = [normalize_text(query) for query in query_texts]
         alias_index = self._get_alias_index(entities)
-        exact_matches = alias_index.get(normalized_mention, [])
-        if exact_matches:
-            return [
-                self._build_candidate(
-                    mention=mention,
-                    entity=entity,
-                    matched_alias=mention.text,
-                    similarity=1.0,
+        exact_matches: list[CandidateScore] = []
+        exact_seen_entity_ids: set[str] = set()
+        for query_text, normalized_query in zip(query_texts, normalized_queries):
+            for entity in alias_index.get(normalized_query, []):
+                if entity.entity_id in exact_seen_entity_ids:
+                    continue
+                exact_seen_entity_ids.add(entity.entity_id)
+                exact_matches.append(
+                    self._build_candidate(
+                        mention=mention,
+                        entity=entity,
+                        matched_alias=query_text,
+                        similarity=1.0,
+                    )
                 )
-                for entity in exact_matches[: max(top_k * 2, top_k)]
-            ]
+        if exact_matches:
+            return exact_matches[: max(top_k * 20, 50)]
 
         if len(entities) > self.max_fuzzy_scan:
             return []
@@ -50,15 +57,29 @@ class CandidateRetriever:
                 if not normalized_alias:
                     continue
 
-                similarity = sequence_similarity(normalized_mention, normalized_alias)
-                exact_match = normalized_mention == normalized_alias
+                similarity = max(
+                    sequence_similarity(normalized_query, normalized_alias)
+                    for normalized_query in normalized_queries
+                )
+                exact_match = any(normalized_query == normalized_alias for normalized_query in normalized_queries)
                 contains_match = (
-                    normalized_mention in normalized_alias or normalized_alias in normalized_mention
+                    any(
+                        normalized_query
+                        and len(normalized_query) >= 2
+                        and normalized_query in normalized_alias
+                        for normalized_query in normalized_queries
+                    )
+                    or any(
+                        normalized_query
+                        and len(normalized_query) >= 2
+                        and normalized_alias in normalized_query
+                        for normalized_query in normalized_queries
+                    )
                 )
 
                 if exact_match:
                     similarity = 1.0
-                elif contains_match and len(normalized_mention) >= 2:
+                elif contains_match:
                     similarity = max(similarity, 0.90)
 
                 if similarity > best_similarity:
@@ -79,6 +100,15 @@ class CandidateRetriever:
 
         candidates.sort(key=lambda item: item.score, reverse=True)
         return candidates[: max(top_k * 2, top_k)]
+
+    @staticmethod
+    def _query_texts(mention: MentionRecord) -> list[str]:
+        query_texts = [mention.text]
+        for alias in mention.metadata.get("candidate_aliases", []):
+            alias_text = str(alias).strip()
+            if alias_text and alias_text not in query_texts:
+                query_texts.append(alias_text)
+        return query_texts
 
     def _get_alias_index(self, entities: list[KnowledgeBaseEntity]) -> dict[str, list[KnowledgeBaseEntity]]:
         cache_key = id(entities)
@@ -108,7 +138,16 @@ class CandidateRetriever:
     ) -> CandidateScore:
         reasons: list[str] = []
         if matched_alias is not None:
-            if normalize_text(matched_alias) == normalize_text(mention.text):
+            normalized_matched_alias = normalize_text(matched_alias)
+            normalized_mention = normalize_text(mention.text)
+            normalized_expansions = {
+                normalize_text(str(alias))
+                for alias in mention.metadata.get("candidate_aliases", [])
+                if str(alias).strip()
+            }
+            if normalized_matched_alias in normalized_expansions and normalized_matched_alias != normalized_mention:
+                reasons.append("llm_alias_expansion")
+            elif normalized_matched_alias == normalized_mention:
                 reasons.append("exact_or_alias_match")
             else:
                 reasons.append("fuzzy_alias_match")

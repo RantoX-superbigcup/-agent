@@ -21,7 +21,7 @@
 - `core/trace_store.py`
   负责链路结果落盘与回放。
 - `llm/deepseek_client.py`
-  可选接入 DeepSeek base model，负责自然语言意图解析、长文本理解和 mention 抽取。
+  可选接入 DeepSeek base model，负责自然语言意图解析、长文本理解、mention 抽取、知识库路由和 mention 别名扩展。
 - `kb/loader.py`
   负责内置或内联知识库加载。
 
@@ -54,7 +54,7 @@ User turn
   -> LangGraph entity linking workflow
 ```
 
-如果未配置 `DEEPSEEK_API_KEY` 或 API 调用失败，终端 Agent 会自动退回本地规则解析，保证离线环境仍能演示。
+如果未配置 `DEEPSEEK_API_KEY` 或 API 调用失败，终端 Agent 会自动退回本地规则解析，保证离线环境仍能演示。DeepSeek 返回的 `mention_aliases` 会作为候选召回扩展信号，例如把 `李导演` 扩展为 `李安`，但最终实体选择仍由可追踪的实体链接工作流完成。
 
 ## 设计取舍
 
