@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "topic10-entity-linking-agent"
+version = "0.1.0"
+description = "Framework project for Topic 10: entity linking and knowledge alignment agent."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  { name = "Codex" }
+]
+dependencies = [
+  "fastapi>=0.115,<0.116",
+  "langchain>=0.3,<0.4",
+  "langchain-core>=0.3,<0.4",
+  "langgraph>=0.2,<0.3",
+  "uvicorn[standard]>=0.30,<0.31",
+  "pydantic>=2.7,<2.11",
+  "click>=8.1,<8.2"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2,<9.0"
+]
+
+[project.scripts]
+topic10-agent = "entity_linking_agent.server:main"
+topic10-cli = "entity_linking_agent.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
