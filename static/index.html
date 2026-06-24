@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Entity Link Agent</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f5f5f5;height:100vh;display:flex;flex-direction:column}
+header{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0}
+header h1{font-size:15px;font-weight:600}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;background:#f0f0f0;color:#888}
+.tabs{display:flex;border-bottom:1px solid #e0e0e0;background:#fff;padding:0 24px;flex-shrink:0}
+.tab{padding:10px 16px;cursor:pointer;font-size:13px;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none}
+.tab.active{color:#0066cc;border-bottom-color:#0066cc;font-weight:500}
+.pane{flex:1;overflow:auto;padding:20px 24px;display:none}
+.pane.active{display:flex;gap:20px;align-items:flex-start}
+.panel{background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:16px;flex:1;min-width:0}
+.panel h2{font-size:13px;font-weight:600;color:#333;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
+label{display:block;font-size:12px;color:#555;margin:10px 0 4px}
+label:first-of-type{margin-top:0}
+input,textarea{width:100%;padding:7px 10px;border:1px solid #d0d0d0;border-radius:4px;font-size:13px;font-family:inherit;outline:none;color:#1a1a1a}
+input:focus,textarea:focus{border-color:#0066cc;box-shadow:0 0 0 2px rgba(0,102,204,.1)}
+textarea{resize:vertical;font-family:'Courier New',monospace;font-size:12px}
+button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
+.btn-primary{background:#0066cc;color:#fff}
+.btn-primary:hover{background:#0055aa}
+.btn-primary:disabled{background:#aaa;cursor:not-allowed}
+.btn-sm{padding:4px 10px;font-size:12px;background:#f0f0f0;color:#333;border:1px solid #d0d0d0;border-radius:4px}
+.btn-sm:hover{background:#e0e0e0}
+.result-box{margin-top:10px;padding:10px;background:#f8f8f8;border:1px solid #e0e0e0;border-radius:4px;font-size:12px;font-family:'Courier New',monospace;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto}
+.result-box.ok{background:#f5fff8;border-color:#b0e0bc}
+.result-box.err{background:#fff5f5;border-color:#f5c0c0;color:#c00}
+.kb-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f8f8f8;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:6px}
+.kb-name{font-weight:500;font-size:13px}
+.kb-meta{font-size:11px;color:#888;margin-top:2px}
+.mention-card{padding:10px;border:1px solid #e0e0e0;border-radius:4px;margin-bottom:8px}
+.mhead{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+.status-badge{padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600}
+.linked{background:#e6f4ea;color:#1e7e34}
+.nil{background:#f0f0f0;color:#666}
+.ambiguous{background:#fff3cd;color:#856404}
+.error{background:#f8d7da;color:#721c24}
+.section-lbl{font-size:11px;color:#888;margin:6px 0 3px;text-transform:uppercase;letter-spacing:.5px}
+.tag{display:inline-block;padding:1px 6px;background:#e8f0fe;color:#1a56db;border-radius:3px;font-size:11px;margin-right:3px}
+.cand-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f5f5f5}
+.cand-row:last-child{border-bottom:none}
+.evid-row{font-size:11px;color:#555;padding:2px 0}
+.score-bar{display:inline-block;height:5px;background:#0066cc;border-radius:3px;margin-left:6px;vertical-align:middle}
+.empty{color:#aaa;font-size:12px;text-align:center;padding:24px}
+.coref-info{font-size:11px;color:#555;margin-bottom:4px}
+.summary-row{display:flex;gap:16px;margin-bottom:12px;font-size:13px}
+.chain-row{font-size:12px;padding:4px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>Entity Link Agent</h1>
+  <span class="badge">v1</span>
+  <span id="health" class="badge" style="margin-left:auto">检查中...</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('kb')">知识库管理</div>
+  <div class="tab" onclick="switchTab('link')">实体链接</div>
+</div>
+
+<div id="pane-kb" class="pane active">
+  <div class="panel" style="max-width:360px;flex:0 0 360px">
+    <h2>创建知识库</h2>
+    <label>知识库 ID</label><input id="kb-id" placeholder="kb-001">
+    <label>版本</label><input id="kb-ver" value="v1">
+    <label>描述</label><input id="kb-desc" placeholder="能源行业实体库">
+    <br><br>
+    <button class="btn-primary" onclick="createKB()">+ 创建</button>
+    <div id="r-create"></div>
+
+    <h2 style="margin-top:20px">导入实体</h2>
+    <label>知识库 ID</label><input id="imp-kb-id" placeholder="kb-001">
+    <label>实体列表（JSON 数组）</label>
+    <textarea id="imp-data" rows="10" placeholder='[{"entity_id":"E001","canonical_name":"国网江苏省电力有限公司","entity_type":"ORG","aliases":["国网江苏电力"],"former_names":[],"description":"...","keywords":["江苏","电力"]}]'></textarea>
+    <br><br>
+    <button class="btn-primary" onclick="importEntities()">↑ 导入</button>
+    <div id="r-import"></div>
+  </div>
+
+  <div class="panel">
+    <h2>知识库列表 <button class="btn-sm" onclick="loadKBs()">↺ 刷新</button></h2>
+    <div id="kb-list"><div class="empty">暂无知识库</div></div>
+  </div>
+</div>
+
+<div id="pane-link" class="pane">
+  <div class="panel" style="max-width:400px;flex:0 0 400px">
+    <h2>链接请求</h2>
+    <label>Request ID</label><input id="req-id" placeholder="req-001">
+    <label>文本</label>
+    <textarea id="lk-text" rows="3" placeholder="国网江苏电力完成南京供电保障。该公司表示将继续提升可靠性。"></textarea>
+    <label>Mentions（每行：mention_id|surface_form|start|end）</label>
+    <textarea id="lk-mentions" rows="4" placeholder="m1|国网江苏电力|0|7&#10;m2|该公司|22|25"></textarea>
+    <label>知识库 ID</label><input id="lk-kb-id" placeholder="kb-001">
+    <label>知识库版本</label><input id="lk-kb-ver" value="v1">
+    <label>NIL 阈值</label><input id="lk-nil-th" type="number" min="0" max="1" step="0.05" value="0.6">
+    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
+      <label style="margin:0;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="opt-coref" checked style="width:auto"> 共指消解</label>
+      <label style="margin:0;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="opt-nil" checked style="width:auto"> NIL检测</label>
+      <label style="margin:0;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="opt-cand" checked style="width:auto"> 返回候选</label>
+    </div>
+    <br>
+    <button class="btn-primary" id="lk-btn" onclick="runLink()">▶ 执行链接</button>
+  </div>
+
+  <div class="panel">
+    <h2>链接结果</h2>
+    <div id="lk-result"><div class="empty">发送请求后结果展示在此</div></div>
+  </div>
+</div>
+
+<script>
+async function api(method, path, body) {
+  const r = await fetch(path, {
+    method,
+    headers: {'Content-Type': 'application/json'},
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  return { ok: r.ok, data: await r.json() };
+}
+
+function showResult(id, { ok, data }) {
+  const el = document.getElementById(id);
+  el.className = 'result-box ' + (ok ? 'ok' : 'err');
+  el.textContent = JSON.stringify(data, null, 2);
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['kb','link'][i] === name));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-' + name).classList.add('active');
+  if (name === 'kb') loadKBs();
+}
+
+async function checkHealth() {
+  const el = document.getElementById('health');
+  try {
+    const { ok } = await api('GET', '/health');
+    el.textContent = ok ? '服务正常' : '服务异常';
+    el.style.cssText = ok ? 'background:#e6f4ea;color:#1e7e34' : 'background:#fde8e8;color:#c00';
+  } catch { el.textContent = '连接失败'; el.style.cssText = 'background:#fde8e8;color:#c00'; }
+}
+
+async function createKB() {
+  const r = await api('POST', '/api/v1/knowledge-bases', {
+    kb_id: document.getElementById('kb-id').value.trim(),
+    kb_version: document.getElementById('kb-ver').value.trim() || 'v1',
+    description: document.getElementById('kb-desc').value.trim(),
+  });
+  showResult('r-create', r);
+  if (r.ok) loadKBs();
+}
+
+async function importEntities() {
+  const kbId = document.getElementById('imp-kb-id').value.trim();
+  let entities;
+  try { entities = JSON.parse(document.getElementById('imp-data').value); }
+  catch (e) { const el=document.getElementById('r-import'); el.className='result-box err'; el.textContent='JSON格式错误: '+e.message; return; }
+  const r = await api('POST', `/api/v1/knowledge-bases/${kbId}/entities`, { entities });
+  showResult('r-import', r);
+  if (r.ok) loadKBs();
+}
+
+async function loadKBs() {
+  const { ok, data } = await api('GET', '/api/v1/knowledge-bases');
+  const el = document.getElementById('kb-list');
+  if (!ok || !data.knowledge_bases?.length) { el.innerHTML = '<div class="empty">暂无知识库</div>'; return; }
+  el.innerHTML = data.knowledge_bases.map(kb => `
+    <div class="kb-item">
+      <div>
+        <div class="kb-name">${kb.kb_id}</div>
+        <div class="kb-meta">${kb.description||'无描述'} · 版本 ${kb.kb_version} · ${kb.entity_count} 个实体</div>
+      </div>
+      <button class="btn-sm" onclick="useKB('${kb.kb_id}','${kb.kb_version}')">使用 →</button>
+    </div>`).join('');
+}
+
+function useKB(id, ver) {
+  document.getElementById('lk-kb-id').value = id;
+  document.getElementById('lk-kb-ver').value = ver;
+  switchTab('link');
+}
+
+async function runLink() {
+  const btn = document.getElementById('lk-btn');
+  btn.disabled = true;
+  const mentions = document.getElementById('lk-mentions').value.trim().split('\n').filter(Boolean).map(line => {
+    const [mention_id, surface_form, s, e] = line.split('|');
+    return { mention_id, surface_form, start_offset: +s, end_offset: +e };
+  });
+  const reqId = document.getElementById('req-id').value.trim() || ('req-' + Date.now());
+  document.getElementById('req-id').value = reqId;
+  const r = await api('POST', '/api/v1/entity-link', {
+    schema_version: 'v1', request_id: reqId,
+    text: { content: document.getElementById('lk-text').value },
+    mentions,
+    knowledge_base: { kb_id: document.getElementById('lk-kb-id').value.trim(), kb_version: document.getElementById('lk-kb-ver').value.trim() || 'v1' },
+    options: {
+      top_k: 5,
+      nil_threshold: +document.getElementById('lk-nil-th').value,
+      enable_nil: document.getElementById('opt-nil').checked,
+      enable_coreference: document.getElementById('opt-coref').checked,
+      return_candidates: document.getElementById('opt-cand').checked,
+      return_evidence: true,
+    },
+  });
+  btn.disabled = false;
+  renderResult(r);
+}
+
+function renderResult({ ok, data }) {
+  const el = document.getElementById('lk-result');
+  if (!ok) { el.innerHTML = `<div class="result-box err">${JSON.stringify(data,null,2)}</div>`; return; }
+  const s = data.summary;
+  const chains = data.coreference_chains || [];
+  el.innerHTML = `
+    <div class="summary-row">
+      <span>共 <b>${s.total_mentions}</b> 个 mention</span>
+      <span style="color:#1e7e34">linked: <b>${s.linked_count}</b></span>
+      <span style="color:#666">nil: <b>${s.nil_count}</b></span>
+    </div>
+    ${data.results.map(renderCard).join('')}
+    ${chains.length ? `<div class="section-lbl">共指链</div>${chains.map(c=>`
+      <div class="chain-row"><span class="tag">${c.chain_id}</span>
+      ${c.mention_ids.map(m=>`<span class="tag" style="background:#f0f0f0;color:#333">${m}</span>`).join(' → ')}
+      → <b>${c.entity_id}</b></div>`).join('')}` : ''}`;
+}
+
+function renderCard(r) {
+  return `<div class="mention-card">
+    <div class="mhead">
+      <b>${r.surface_form}</b>
+      <span style="color:#aaa;font-size:11px">${r.mention_id}</span>
+      <span class="status-badge ${r.link_status}">${r.link_status}</span>
+      ${r.entity ? `<span style="font-size:12px">→ <b>${r.entity.canonical_name}</b> <span style="color:#888">${r.entity.entity_id}</span></span>` : ''}
+      ${r.confidence ? `<span style="font-size:11px;color:#888;margin-left:auto">置信度 ${r.confidence.toFixed(3)}</span>` : ''}
+    </div>
+    ${r.coreference ? `<div class="coref-info">↳ 共指回链自 <b>${r.coreference.resolved_from}</b></div>` : ''}
+    ${r.evidence?.length ? `<div class="section-lbl">依据</div>${r.evidence.map(e=>`<div class="evid-row"><span class="tag">${e.evidence_type}</span>${e.detail}</div>`).join('')}` : ''}
+    ${r.candidates?.length ? `<div class="section-lbl">候选</div>${r.candidates.map(c=>`<div class="cand-row"><span>${c.canonical_name} <span style="color:#aaa">${c.entity_id}</span></span><span>${c.score.toFixed(3)}<span class="score-bar" style="width:${Math.round(c.score*40)}px"></span></span></div>`).join('')}` : ''}
+  </div>`;
+}
+
+checkHealth();
+loadKBs();
+</script>
+</body>
+</html>
