@@ -1,0 +1,148 @@
+[
+  {
+    "entity_id": "ORG001",
+    "canonical_name": "国家电网有限公司",
+    "entity_type": "ORG",
+    "aliases": [
+      "国家电网",
+      "国网",
+      "SGCC"
+    ],
+    "former_names": [
+      "国家电力公司"
+    ],
+    "description": "中国规模最大的公用事业企业，负责全国大部分地区的电力输送与销售。",
+    "parent_ids": [],
+    "keywords": [
+      "特高压",
+      "输电",
+      "电网",
+      "国有企业",
+      "电力"
+    ]
+  },
+  {
+    "entity_id": "ORG002",
+    "canonical_name": "国网江苏省电力有限公司",
+    "entity_type": "ORG",
+    "aliases": [
+      "国网江苏电力",
+      "江苏电力",
+      "江苏省电力公司"
+    ],
+    "former_names": [],
+    "description": "国家电网有限公司在江苏省的省级子公司，负责江苏全省电力供应保障。",
+    "parent_ids": [
+      "ORG001"
+    ],
+    "keywords": [
+      "江苏",
+      "南京",
+      "苏州",
+      "电力保障",
+      "配电"
+    ]
+  },
+  {
+    "entity_id": "ORG003",
+    "canonical_name": "南方电网有限责任公司",
+    "entity_type": "ORG",
+    "aliases": [
+      "南方电网",
+      "南网",
+      "CSG"
+    ],
+    "former_names": [],
+    "description": "负责广东、广西、云南、贵州、海南五省区供电的国有电网企业。",
+    "parent_ids": [],
+    "keywords": [
+      "广东",
+      "广西",
+      "云南",
+      "贵州",
+      "海南",
+      "南方",
+      "电网"
+    ]
+  },
+  {
+    "entity_id": "ORG004",
+    "canonical_name": "华能集团",
+    "entity_type": "ORG",
+    "aliases": [
+      "中国华能",
+      "华能",
+      "China Huaneng"
+    ],
+    "former_names": [
+      "中国华能集团公司"
+    ],
+    "description": "中国五大发电集团之一，拥有火电、水电、风电等多种能源资产。",
+    "parent_ids": [],
+    "keywords": [
+      "发电",
+      "火电",
+      "风电",
+      "水电",
+      "煤电",
+      "装机容量"
+    ]
+  },
+  {
+    "entity_id": "ORG005",
+    "canonical_name": "宁德时代新能源科技股份有限公司",
+    "entity_type": "ORG",
+    "aliases": [
+      "宁德时代",
+      "CATL",
+      "宁时代"
+    ],
+    "former_names": [],
+    "description": "全球领先的动力电池及储能系统研发制造企业，总部位于福建宁德。",
+    "parent_ids": [],
+    "keywords": [
+      "动力电池",
+      "储能",
+      "锂电池",
+      "新能源汽车",
+      "福建",
+      "宁德"
+    ]
+  },
+  {
+    "entity_id": "PER001",
+    "canonical_name": "张玉卓",
+    "entity_type": "PERSON",
+    "aliases": [
+      "张玉卓董事长"
+    ],
+    "former_names": [],
+    "description": "国家电网有限公司董事长、党组书记。",
+    "parent_ids": [],
+    "keywords": [
+      "国家电网",
+      "董事长",
+      "党组书记"
+    ]
+  },
+  {
+    "entity_id": "LOC001",
+    "canonical_name": "南京南站",
+    "entity_type": "LOC",
+    "aliases": [
+      "南京南",
+      "南京南高铁站"
+    ],
+    "former_names": [],
+    "description": "位于江苏省南京市的大型铁路客运站，是华东地区重要的高铁枢纽。",
+    "parent_ids": [],
+    "keywords": [
+      "高铁",
+      "铁路",
+      "南京",
+      "江苏",
+      "枢纽",
+      "车站"
+    ]
+  }
+]
