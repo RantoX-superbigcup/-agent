@@ -66,6 +66,14 @@ Agent：正在执行 LangGraph 实体链接流程...
 
 服务默认监听 `0.0.0.0:8000`，局域网或服务器内其他系统可以通过机器 IP 访问 `/health`、`/docs`、`/v1/link`、`/v1/link/batch`、`/v1/traces/{trace_id}`。
 
+## 文档索引
+
+- [数据流说明 DOCX](docs/data_flow.docx)：从终端输入、DeepSeek 对话图、实体链接图到最终 trace 的完整字段流转。
+- [数据流说明 Markdown](docs/data_flow.md)：DOCX 的可维护源文件。
+- [LangChain + LangGraph 工作流说明](docs/langchain_langgraph_workflow.md)：两层 LangGraph 节点和条件边说明。
+- [API 规范](docs/api_spec.md)：HTTP 接口、请求字段和响应字段说明。
+- [架构说明](docs/architecture.md)：模块职责和设计取舍。
+
 ## 对应任务书要求
 
 - 服务化、可集成：基于 FastAPI 对外暴露 HTTP API。
