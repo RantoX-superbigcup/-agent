@@ -52,7 +52,7 @@ docker-compose up
 | `linker.enable_coreference` | true | 是否启用共指消解 |
 | `coreference.trigger_terms` | 该公司、其、他... | 共指触发词列表 |
 | `embedding.model_name` | BAAI/bge-small-zh-v1.5 | 嵌入模型路径 |
-| `embedding.device` | cuda | 推理设备（cuda / cpu） |
+| `embedding.device` | auto | 推理设备（auto 自动检测 / cuda / cpu） |
 | `embedding.index_dir` | data/vector_index | FAISS 索引存储路径 |
 
 ## 项目依赖
@@ -335,7 +335,10 @@ cp .env.example .env
 
 ### 注意事项
 
+- **GPU / CPU**：`config.yaml` 中 `device: auto` 会自动检测 CUDA 可用性。有 NVIDIA 显卡 → 自动用 GPU；无显卡 → CPU，速度较慢但可运行
+- **PyTorch 依赖**：由 `sentence-transformers` 自动安装，无需手动声明。如需 GPU 加速，确保 PyTorch 为 CUDA 版本（`pip show torch | grep cuda`）
+- **FAISS**：使用 `faiss-cpu`（PyPI 预编译包）。GPU 版 `faiss-gpu` 需额外配置，当前方案已足够处理万级实体
 - 数据目录 `data/knowledge_bases/`、`data/vector_index/`、`data/models/` 已加入 `.gitignore`，不提交
 - 嵌入模型需每位开发者本地下载：`python scripts/download_model.py`
-- 首次实体链接请求会加载 184MB BGE 模型，耗时约 5 秒，后续请求秒级响应
+- 首次实体链接请求会加载 184MB BGE 模型，耗时约 5 秒（GPU）到 15 秒（CPU），后续请求秒级响应
 - 前端直接打开 `static/index.html` 会走 `file://` 协议，自动指向 `localhost:8000`
