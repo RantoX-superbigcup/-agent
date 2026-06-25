@@ -1,0 +1,24 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-uni-threshold",
+  "text": {
+    "content": "以樱花闻名的珞珈山学府今日发布法学学科评估报告。孙中山先生创办的那所广东名校在珠海校区举行了开学典礼。西迁至西安的那所交通大学创新港校区已全面启用。以少年班闻名的那所合肥高校刚刚在量子计算领域取得重大突破。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "以樱花闻名的珞珈山学府", "start_offset": 0, "end_offset": 11 },
+    { "mention_id": "m2", "surface_form": "孙中山先生创办的那所广东名校", "start_offset": 20, "end_offset": 33 },
+    { "mention_id": "m3", "surface_form": "西迁至西安的那所交通大学", "start_offset": 40, "end_offset": 51 },
+    { "mention_id": "m4", "surface_form": "以少年班闻名的那所合肥高校", "start_offset": 59, "end_offset": 71 }
+  ],
+  "knowledge_base": { "kb_id": "cn-universities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

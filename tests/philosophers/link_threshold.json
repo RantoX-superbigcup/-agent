@@ -1,0 +1,25 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-phil-threshold",
+  "text": {
+    "content": "横渠四句的作者是北宋关学宗师。西汉那位提出罢黜百家独尊儒术的政治家将阴阳五行融入儒学。梦蝶的漆园吏以汪洋恣肆的文风写下逍遥游。法家集大成者将法术势融为一体，其学说被秦国采用。注四书章句集注的南宋理学家创立了闽学学派。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "横渠四句的作者", "start_offset": 0, "end_offset": 7 },
+    { "mention_id": "m2", "surface_form": "西汉那位提出罢黜百家独尊儒术的政治家", "start_offset": 15, "end_offset": 33 },
+    { "mention_id": "m3", "surface_form": "梦蝶的漆园吏", "start_offset": 42, "end_offset": 48 },
+    { "mention_id": "m4", "surface_form": "法家集大成者", "start_offset": 56, "end_offset": 62 },
+    { "mention_id": "m5", "surface_form": "注四书章句集注的南宋理学家", "start_offset": 76, "end_offset": 88 }
+  ],
+  "knowledge_base": { "kb_id": "cn-philosophers-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

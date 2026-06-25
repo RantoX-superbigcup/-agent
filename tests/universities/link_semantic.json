@@ -1,0 +1,24 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-uni-semantic",
+  "text": {
+    "content": "中国最顶尖的高等学府，坐落于北京西北郊清华园，以工科闻名遐迩。燕园未名湖畔的那所文理名校是中国最古老的大学。东方剑桥位于杭州西子湖畔，紫金港校区规模宏大。上海西南那所以船舶海洋工程著称的高校拥有全国最强的相关学科。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "中国最顶尖的高等学府，坐落于北京西北郊清华园，以工科闻名遐迩", "start_offset": 0, "end_offset": 30 },
+    { "mention_id": "m2", "surface_form": "燕园未名湖畔的那所文理名校", "start_offset": 31, "end_offset": 44 },
+    { "mention_id": "m3", "surface_form": "东方剑桥", "start_offset": 49, "end_offset": 53 },
+    { "mention_id": "m4", "surface_form": "上海西南那所以船舶海洋工程著称的高校", "start_offset": 62, "end_offset": 81 }
+  ],
+  "knowledge_base": { "kb_id": "cn-universities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

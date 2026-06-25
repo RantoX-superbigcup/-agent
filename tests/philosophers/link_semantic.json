@@ -1,0 +1,53 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-phil-semantic",
+  "text": {
+    "content": "这位儒家创始人被后世尊为万世师表，其仁与礼的学说影响中国两千余年。那位与儒家创始人针锋相对、主张性恶论的思想家培养出了韩非和李斯两位法家巨擘。兵家之祖所著的军事经典至今被全球商学院奉为圭臬。那位提出兼爱非攻的战国思想家组建了纪律严明的学术团体。龙场悟道后开创心学的那位明代大儒强调知行合一。",
+    "language": "zh"
+  },
+  "mentions": [
+    {
+      "mention_id": "m1",
+      "surface_form": "这位儒家创始人被后世尊为万世师表，其仁与礼的学说影响中国两千余年",
+      "start_offset": 0,
+      "end_offset": 33
+    },
+    {
+      "mention_id": "m2",
+      "surface_form": "与儒家创始人针锋相对、主张性恶论的思想家",
+      "start_offset": 34,
+      "end_offset": 54
+    },
+    {
+      "mention_id": "m3",
+      "surface_form": "兵家之祖",
+      "start_offset": 67,
+      "end_offset": 71
+    },
+    {
+      "mention_id": "m4",
+      "surface_form": "提出兼爱非攻的战国思想家",
+      "start_offset": 85,
+      "end_offset": 96
+    },
+    {
+      "mention_id": "m5",
+      "surface_form": "龙场悟道后开创心学的那位明代大儒",
+      "start_offset": 106,
+      "end_offset": 122
+    }
+  ],
+  "knowledge_base": {
+    "kb_id": "cn-philosophers-v1",
+    "kb_version": "v1"
+  },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

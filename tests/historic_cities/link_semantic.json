@@ -1,0 +1,25 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-city-semantic",
+  "text": {
+    "content": "十三朝古都以兵马俑闻名于世，是丝绸之路的起点。六朝古都金陵以梧桐大道和夫子庙著称。清明上河图所描绘的北宋都城如今仍保留着龙亭和铁塔。南宋故都临安以西湖美景闻名，素有天堂之誉。锦官城作为古蜀文明的发祥地，以熊猫和火锅吸引八方来客。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "十三朝古都以兵马俑闻名于世，是丝绸之路的起点", "start_offset": 0, "end_offset": 23 },
+    { "mention_id": "m2", "surface_form": "六朝古都金陵", "start_offset": 24, "end_offset": 31 },
+    { "mention_id": "m3", "surface_form": "清明上河图所描绘的北宋都城", "start_offset": 39, "end_offset": 50 },
+    { "mention_id": "m4", "surface_form": "南宋故都临安", "start_offset": 59, "end_offset": 65 },
+    { "mention_id": "m5", "surface_form": "锦官城", "start_offset": 74, "end_offset": 77 }
+  ],
+  "knowledge_base": { "kb_id": "cn-historic-cities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

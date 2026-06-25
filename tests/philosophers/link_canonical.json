@@ -1,0 +1,22 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-phil-canonical",
+  "text": {
+    "content": "孔丘是儒家学派的创始人，被尊为万世师表。孟轲提出了性善论和仁政学说。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "孔丘", "start_offset": 0, "end_offset": 2 },
+    { "mention_id": "m2", "surface_form": "孟轲", "start_offset": 16, "end_offset": 18 }
+  ],
+  "knowledge_base": { "kb_id": "cn-philosophers-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

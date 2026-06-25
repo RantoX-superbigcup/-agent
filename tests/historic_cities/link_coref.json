@@ -1,0 +1,23 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-city-coref",
+  "text": {
+    "content": "成都市近日获评最具幸福感城市。该市以大熊猫繁育基地和都江堰水利工程闻名世界。蓉城的火锅文化和川剧变脸也吸引了大量国内外游客。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "成都市", "start_offset": 0, "end_offset": 3 },
+    { "mention_id": "m2", "surface_form": "该市", "start_offset": 13, "end_offset": 15 },
+    { "mention_id": "m3", "surface_form": "蓉城", "start_offset": 32, "end_offset": 34 }
+  ],
+  "knowledge_base": { "kb_id": "cn-historic-cities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

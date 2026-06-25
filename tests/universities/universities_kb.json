@@ -1,0 +1,390 @@
+{
+  "kb_id": "cn-universities-v1",
+  "kb_version": "v1",
+  "description": "中国顶尖高校知识库——覆盖15所985重点大学，含标准名、别名、曾用名、特色描述及学科关键词。",
+  "entities": [
+    {
+      "entity_id": "U001",
+      "canonical_name": "清华大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "清华",
+        "Tsinghua University",
+        "THU"
+      ],
+      "former_names": [
+        "清华学堂"
+      ],
+      "description": "中国最顶尖的综合性研究型大学之一，以工科见长，位于北京市海淀区清华园。土木工程、计算机科学、电子工程等学科享誉全球。",
+      "keywords": [
+        "工科",
+        "土木工程",
+        "计算机",
+        "电子工程",
+        "清华园",
+        "北京",
+        "五道口",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U002",
+      "canonical_name": "北京大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "北大",
+        "Peking University",
+        "PKU"
+      ],
+      "former_names": [
+        "京师大学堂"
+      ],
+      "description": "中国最古老且最负盛名的综合性大学，以文理基础学科见长，位于北京市海淀区燕园，毗邻未名湖。",
+      "keywords": [
+        "文科",
+        "理科",
+        "医学",
+        "法学",
+        "未名湖",
+        "燕园",
+        "北京",
+        "人文",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U003",
+      "canonical_name": "浙江大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "浙大",
+        "Zhejiang University",
+        "ZJU"
+      ],
+      "former_names": [
+        "求是书院"
+      ],
+      "description": "中国顶尖的综合性研究型大学，以工科和农学见长，主校区紫金港校区位于杭州市西湖区，被誉为「东方剑桥」。",
+      "keywords": [
+        "工科",
+        "农学",
+        "计算机",
+        "紫金港",
+        "杭州",
+        "浙江",
+        "东方剑桥",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U004",
+      "canonical_name": "复旦大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "复旦",
+        "Fudan University",
+        "FDU"
+      ],
+      "former_names": [
+        "复旦公学"
+      ],
+      "description": "中国顶尖的综合性研究型大学，文科和医学实力突出，位于上海市杨浦区邯郸路，校名取自「日月光华，旦复旦兮」。",
+      "keywords": [
+        "文科",
+        "医学",
+        "新闻",
+        "经济",
+        "上海",
+        "杨浦",
+        "985",
+        "211",
+        "C9",
+        "光华楼"
+      ]
+    },
+    {
+      "entity_id": "U005",
+      "canonical_name": "上海交通大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "上海交大",
+        "交大",
+        "Shanghai Jiao Tong University",
+        "SJTU"
+      ],
+      "former_names": [
+        "南洋公学"
+      ],
+      "description": "中国顶尖的综合性研究型大学，工科和医学实力雄厚，主校区位于上海市闵行区东川路，船舶海洋工程全国第一。",
+      "keywords": [
+        "工科",
+        "医学",
+        "船舶",
+        "海洋工程",
+        "机械",
+        "上海",
+        "闵行",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U006",
+      "canonical_name": "南京大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "南大",
+        "Nanjing University",
+        "NJU"
+      ],
+      "former_names": [
+        "国立中央大学"
+      ],
+      "description": "中国顶尖的综合性研究型大学，天文和地质学科全国领先，位于南京市栖霞区仙林大道，前身是民国时期的最高学府。",
+      "keywords": [
+        "天文",
+        "地质",
+        "物理",
+        "南京",
+        "仙林",
+        "鼓楼",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U007",
+      "canonical_name": "中国科学技术大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "中科大",
+        "中国科大",
+        "USTC"
+      ],
+      "former_names": [],
+      "description": "中国科学院直属的顶尖理工科大学，以物理、化学等基础科学见长，位于安徽省合肥市，素有「千人一院士」的美誉。",
+      "keywords": [
+        "物理",
+        "化学",
+        "量子",
+        "基础科学",
+        "合肥",
+        "安徽",
+        "少年班",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U008",
+      "canonical_name": "哈尔滨工业大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "哈工大",
+        "Harbin Institute of Technology",
+        "HIT"
+      ],
+      "former_names": [
+        "哈尔滨中俄工业学校"
+      ],
+      "description": "中国顶尖的理工科大学，航天和机器人学科全国领先，本部位于黑龙江省哈尔滨市，在深圳和威海设有校区。",
+      "keywords": [
+        "航天",
+        "机器人",
+        "焊接",
+        "土木",
+        "哈尔滨",
+        "黑龙江",
+        "深圳校区",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U009",
+      "canonical_name": "西安交通大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "西安交大",
+        "西交",
+        "Xi'an Jiaotong University",
+        "XJTU"
+      ],
+      "former_names": [
+        "交通大学"
+      ],
+      "description": "中国顶尖的综合性研究型大学，能源动力和管理学科全国领先，位于陕西省西安市碑林区，是交通大学西迁的产物。",
+      "keywords": [
+        "能源",
+        "动力",
+        "管理",
+        "电气",
+        "西安",
+        "陕西",
+        "兴庆校区",
+        "创新港",
+        "985",
+        "211",
+        "C9"
+      ]
+    },
+    {
+      "entity_id": "U010",
+      "canonical_name": "武汉大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "武大",
+        "Wuhan University",
+        "WHU"
+      ],
+      "former_names": [
+        "自强学堂"
+      ],
+      "description": "中国顶尖的综合性研究型大学，以法学和测绘学科著称，位于湖北省武汉市武昌区珞珈山，以樱花闻名全国。",
+      "keywords": [
+        "法学",
+        "测绘",
+        "遥感",
+        "水利",
+        "武汉",
+        "珞珈山",
+        "樱花",
+        "湖北",
+        "985",
+        "211"
+      ]
+    },
+    {
+      "entity_id": "U011",
+      "canonical_name": "中山大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "中大",
+        "Sun Yat-sen University",
+        "SYSU"
+      ],
+      "former_names": [
+        "国立广东大学"
+      ],
+      "description": "中国顶尖的综合性研究型大学，医学和海洋科学实力突出，位于广东省广州市海珠区，由孙中山先生创办。",
+      "keywords": [
+        "医学",
+        "海洋科学",
+        "商科",
+        "广州",
+        "广东",
+        "孙中山",
+        "珠海校区",
+        "985",
+        "211"
+      ]
+    },
+    {
+      "entity_id": "U012",
+      "canonical_name": "同济大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "同济",
+        "Tongji University"
+      ],
+      "former_names": [
+        "同济德文医学堂"
+      ],
+      "description": "中国著名的综合性研究型大学，以土木建筑和城市规划学科享誉全球，位于上海市杨浦区四平路，由德国医生创办。",
+      "keywords": [
+        "土木",
+        "建筑",
+        "城市规划",
+        "交通",
+        "上海",
+        "德式",
+        "四平路",
+        "985",
+        "211"
+      ]
+    },
+    {
+      "entity_id": "U013",
+      "canonical_name": "南开大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "南开",
+        "Nankai University",
+        "NKU"
+      ],
+      "former_names": [
+        "私立南开大学"
+      ],
+      "description": "中国著名的综合性研究型大学，数学和化学等基础学科实力雄厚，位于天津市南开区，是周恩来总理的母校。",
+      "keywords": [
+        "数学",
+        "化学",
+        "历史",
+        "经济",
+        "天津",
+        "周恩来",
+        "985",
+        "211"
+      ]
+    },
+    {
+      "entity_id": "U014",
+      "canonical_name": "天津大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "天大",
+        "Tianjin University",
+        "TJU"
+      ],
+      "former_names": [
+        "北洋大学"
+      ],
+      "description": "中国第一所现代大学，工科实力雄厚，化工学科全国第一，位于天津市南开区卫津路，前身是1895年创建的北洋大学。",
+      "keywords": [
+        "化工",
+        "精密仪器",
+        "建筑",
+        "天津",
+        "北洋",
+        "卫津路",
+        "985",
+        "211"
+      ]
+    },
+    {
+      "entity_id": "U015",
+      "canonical_name": "东南大学",
+      "entity_type": "ORG",
+      "aliases": [
+        "东大",
+        "Southeast University",
+        "SEU"
+      ],
+      "former_names": [
+        "国立东南大学"
+      ],
+      "description": "中国著名的工科强校，建筑学和电子科学学科全国领先，位于江苏省南京市江宁区，前身是国立东南大学。",
+      "keywords": [
+        "建筑",
+        "电子",
+        "通信",
+        "南京",
+        "江宁",
+        "江苏",
+        "四牌楼",
+        "985",
+        "211"
+      ]
+    }
+  ]
+}

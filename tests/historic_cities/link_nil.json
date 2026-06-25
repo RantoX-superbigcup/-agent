@@ -1,0 +1,23 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-city-nil",
+  "text": {
+    "content": "纽约市的时代广场每年吸引数百万游客。东京塔是日本首都的标志性建筑。巴黎的埃菲尔铁塔举世闻名。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "纽约市", "start_offset": 0, "end_offset": 3 },
+    { "mention_id": "m2", "surface_form": "东京", "start_offset": 12, "end_offset": 14 },
+    { "mention_id": "m3", "surface_form": "巴黎", "start_offset": 24, "end_offset": 26 }
+  ],
+  "knowledge_base": { "kb_id": "cn-historic-cities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

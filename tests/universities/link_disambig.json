@@ -1,0 +1,22 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-uni-disambig",
+  "text": {
+    "content": "天津有两所著名高校隔街相望：一所以化工和精密仪器见长，是中国第一所现代大学；另一所以数学和历史学科著称，是周恩来总理的母校。这两校共同构成了天津的高等教育双璧。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "以化工和精密仪器见长，是中国第一所现代大学", "start_offset": 14, "end_offset": 36 },
+    { "mention_id": "m2", "surface_form": "以数学和历史学科著称，是周恩来总理的母校", "start_offset": 38, "end_offset": 57 }
+  ],
+  "knowledge_base": { "kb_id": "cn-universities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

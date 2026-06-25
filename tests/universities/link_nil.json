@@ -1,0 +1,23 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-uni-nil",
+  "text": {
+    "content": "麻省理工学院和斯坦福大学在最新的QS排名中位列前三。剑桥大学作为英国最古老的学府之一依然保持领先地位。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "麻省理工学院", "start_offset": 0, "end_offset": 6 },
+    { "mention_id": "m2", "surface_form": "斯坦福大学", "start_offset": 7, "end_offset": 12 },
+    { "mention_id": "m3", "surface_form": "剑桥大学", "start_offset": 23, "end_offset": 27 }
+  ],
+  "knowledge_base": { "kb_id": "cn-universities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

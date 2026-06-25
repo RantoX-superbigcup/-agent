@@ -1,0 +1,23 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-city-canonical",
+  "text": {
+    "content": "北京市是中国的首都，西安市则以兵马俑闻名世界。南京市拥有中山陵等著名景点。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "北京市", "start_offset": 0, "end_offset": 3 },
+    { "mention_id": "m2", "surface_form": "西安市", "start_offset": 10, "end_offset": 13 },
+    { "mention_id": "m3", "surface_form": "南京市", "start_offset": 21, "end_offset": 24 }
+  ],
+  "knowledge_base": { "kb_id": "cn-historic-cities-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}
