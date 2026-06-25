@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from functools import lru_cache
 from pathlib import Path
-
 import yaml
 from pydantic_settings import BaseSettings
 
@@ -12,7 +10,6 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_log_level: str = "info"
     kb_dir: str = "data/knowledge_bases"
-
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
@@ -27,6 +24,11 @@ class AppConfig:
         self.linker_version: str = linker.get("version", "v1")
         coref = yaml_cfg.get("coreference", {})
         self.coreference_terms: set[str] = set(coref.get("trigger_terms", []))
+        emb = yaml_cfg.get("embedding", {})
+        self.embedding_model: str = emb.get("model_name", "BAAI/bge-small-zh-v1.5")
+        self.embedding_device: str = emb.get("device", "cuda")
+        self.index_dir: Path = Path(emb.get("index_dir", "data/vector_index"))
+        self.top_k_retrieve: int = emb.get("top_k_retrieve", 20)
 
 
 @lru_cache(maxsize=1)

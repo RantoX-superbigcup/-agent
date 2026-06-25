@@ -1,22 +1,28 @@
 import pytest
 
 
+_ENTITIES = [
+    {
+        "entity_id": "E001",
+        "canonical_name": "国网江苏省电力有限公司",
+        "entity_type": "ORG",
+        "aliases": ["国网江苏电力", "江苏电力"],
+        "former_names": [],
+        "description": "国家电网有限公司在江苏地区的省级电力公司。",
+        "keywords": ["江苏", "南京", "电力"],
+    }
+]
+
+
 @pytest.fixture(scope="module", autouse=True)
 def setup_kb(client, kb_id):
-    client.post("/api/v1/knowledge-bases", json={
-        "kb_id": kb_id, "kb_version": "v1", "description": "fixture kb"
+    r = client.post("/api/v1/knowledge-bases", json={
+        "kb_id": kb_id,
+        "kb_version": "v1",
+        "description": "fixture kb",
+        "entities": _ENTITIES,
     })
-    client.post(f"/api/v1/knowledge-bases/{kb_id}/entities", json={"entities": [
-        {
-            "entity_id": "E001",
-            "canonical_name": "国网江苏省电力有限公司",
-            "entity_type": "ORG",
-            "aliases": ["国网江苏电力", "江苏电力"],
-            "former_names": [],
-            "description": "国家电网有限公司在江苏地区的省级电力公司。",
-            "keywords": ["江苏", "南京", "电力"],
-        }
-    ]})
+    assert r.status_code == 201
 
 
 def test_health(client):
@@ -25,11 +31,43 @@ def test_health(client):
     assert r.json()["status"] == "ok"
 
 
-def test_create_kb_duplicate(client, kb_id):
+def test_import_kb_overwrite(client, kb_id):
+    """重复导入同一 kb_id 应覆盖，不报 409。"""
     r = client.post("/api/v1/knowledge-bases", json={
-        "kb_id": kb_id, "kb_version": "v1", "description": ""
+        "kb_id": kb_id,
+        "kb_version": "v1",
+        "description": "overwritten",
+        "entities": _ENTITIES,
     })
-    assert r.status_code == 409
+    assert r.status_code == 201
+    assert r.json()["status"] == "overwritten"
+
+
+def test_import_kb_empty_entities(client):
+    """entities 为空数组应被 Pydantic 拦截。"""
+    r = client.post("/api/v1/knowledge-bases", json={
+        "kb_id": "empty-kb",
+        "kb_version": "v1",
+        "description": "",
+        "entities": [],
+    })
+    assert r.status_code == 422  # Pydantic validation error
+
+
+def test_import_kb_duplicate_ids(client):
+    """同批次 entity_id 重复应拒绝。"""
+    r = client.post("/api/v1/knowledge-bases", json={
+        "kb_id": "dup-kb",
+        "kb_version": "v1",
+        "description": "",
+        "entities": [
+            {"entity_id": "E001", "canonical_name": "A", "entity_type": "ORG",
+             "aliases": [], "former_names": [], "description": ""},
+            {"entity_id": "E001", "canonical_name": "B", "entity_type": "ORG",
+             "aliases": [], "former_names": [], "description": ""},
+        ],
+    })
+    assert r.status_code == 422  # Pydantic model_validator
 
 
 def test_list_kbs(client, kb_id):
@@ -43,6 +81,7 @@ def test_get_kb(client, kb_id):
     r = client.get(f"/api/v1/knowledge-bases/{kb_id}")
     assert r.status_code == 200
     assert r.json()["kb_id"] == kb_id
+    assert r.json()["entity_count"] == 1
 
 
 def test_entity_link_alias(client, kb_id):

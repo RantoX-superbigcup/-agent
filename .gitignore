@@ -12,3 +12,7 @@ artifacts/traces/*.log
 .ruff_cache/
 dist/
 build/
+.idea/
+data/models/
+data/vector_index/
+data/knowledge_bases/

@@ -51,6 +51,7 @@ button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:no
 .coref-info{font-size:11px;color:#555;margin-bottom:4px}
 .summary-row{display:flex;gap:16px;margin-bottom:12px;font-size:13px}
 .chain-row{font-size:12px;padding:4px 0}
+.hint{font-size:11px;color:#999;margin-top:4px}
 </style>
 </head>
 <body>
@@ -66,21 +67,16 @@ button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:no
 </div>
 
 <div id="pane-kb" class="pane active">
-  <div class="panel" style="max-width:360px;flex:0 0 360px">
-    <h2>创建知识库</h2>
-    <label>知识库 ID</label><input id="kb-id" placeholder="kb-001">
+  <div class="panel" style="max-width:420px;flex:0 0 420px">
+    <h2>导入知识库 <button class="btn-sm" onclick="fillPreset()">📋 填入示例</button></h2>
+    <label>知识库 ID</label><input id="kb-id" placeholder="energy-v1">
     <label>版本</label><input id="kb-ver" value="v1">
     <label>描述</label><input id="kb-desc" placeholder="能源行业实体库">
-    <br><br>
-    <button class="btn-primary" onclick="createKB()">+ 创建</button>
-    <div id="r-create"></div>
-
-    <h2 style="margin-top:20px">导入实体</h2>
-    <label>知识库 ID</label><input id="imp-kb-id" placeholder="kb-001">
-    <label>实体列表（JSON 数组）</label>
-    <textarea id="imp-data" rows="10" placeholder='[{"entity_id":"E001","canonical_name":"国网江苏省电力有限公司","entity_type":"ORG","aliases":["国网江苏电力"],"former_names":[],"description":"...","keywords":["江苏","电力"]}]'></textarea>
-    <br><br>
-    <button class="btn-primary" onclick="importEntities()">↑ 导入</button>
+    <label>实体列表（JSON 数组，含 entity_id / canonical_name / entity_type / aliases / description / keywords）</label>
+    <textarea id="kb-entities" rows="12" placeholder='[{"entity_id":"E001","canonical_name":"...","entity_type":"ORG","aliases":["..."],"former_names":[],"description":"...","keywords":["..."]}]'></textarea>
+    <div class="hint">同名 kb_id 再次导入将覆盖已有数据</div>
+    <br>
+    <button class="btn-primary" onclick="importKB()">📦 导入知识库</button>
     <div id="r-import"></div>
   </div>
 
@@ -91,23 +87,14 @@ button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:no
 </div>
 
 <div id="pane-link" class="pane">
-  <div class="panel" style="max-width:400px;flex:0 0 400px">
-    <h2>链接请求</h2>
-    <label>Request ID</label><input id="req-id" placeholder="req-001">
-    <label>文本</label>
-    <textarea id="lk-text" rows="3" placeholder="国网江苏电力完成南京供电保障。该公司表示将继续提升可靠性。"></textarea>
-    <label>Mentions（每行：mention_id|surface_form|start|end）</label>
-    <textarea id="lk-mentions" rows="4" placeholder="m1|国网江苏电力|0|7&#10;m2|该公司|22|25"></textarea>
-    <label>知识库 ID</label><input id="lk-kb-id" placeholder="kb-001">
-    <label>知识库版本</label><input id="lk-kb-ver" value="v1">
-    <label>NIL 阈值</label><input id="lk-nil-th" type="number" min="0" max="1" step="0.05" value="0.6">
-    <div style="display:flex;gap:14px;margin-top:10px;flex-wrap:wrap">
-      <label style="margin:0;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="opt-coref" checked style="width:auto"> 共指消解</label>
-      <label style="margin:0;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="opt-nil" checked style="width:auto"> NIL检测</label>
-      <label style="margin:0;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="opt-cand" checked style="width:auto"> 返回候选</label>
-    </div>
+  <div class="panel" style="max-width:500px;flex:0 0 500px">
+    <h2>链接请求 <button class="btn-sm" onclick="fillLinkPreset()">📋 填入示例</button></h2>
+    <label>请求体（完整的 LinkRequest JSON）</label>
+    <textarea id="lk-json" rows="22" placeholder='{"schema_version":"v1","request_id":"req-001","text":{"content":"...","language":"zh"},"mentions":[{"mention_id":"m1","surface_form":"...","start_offset":0,"end_offset":6}],"knowledge_base":{"kb_id":"cn-enterprises-v1","kb_version":"v1"},"options":{"top_k":5,"nil_threshold":0.6,"enable_nil":true,"enable_coreference":true,"return_candidates":true,"return_evidence":true,"linker_version":"v1"}}'></textarea>
+    <div class="hint">直接粘贴接口文档中的 LinkRequest JSON，或从 tests/fixtures/ 加载</div>
     <br>
     <button class="btn-primary" id="lk-btn" onclick="runLink()">▶ 执行链接</button>
+    <div id="lk-err" style="color:#c00;font-size:12px;margin-top:6px;display:none"></div>
   </div>
 
   <div class="panel">
@@ -117,8 +104,11 @@ button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:no
 </div>
 
 <script>
+// 自动检测：当前端口不是8000时，API请求指向后端
+const API_BASE = window.location.port === '8000' ? '' : 'http://localhost:8000';
+
 async function api(method, path, body) {
-  const r = await fetch(path, {
+  const r = await fetch(API_BASE + path, {
     method,
     headers: {'Content-Type': 'application/json'},
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -148,70 +138,105 @@ async function checkHealth() {
   } catch { el.textContent = '连接失败'; el.style.cssText = 'background:#fde8e8;color:#c00'; }
 }
 
-async function createKB() {
-  const r = await api('POST', '/api/v1/knowledge-bases', {
-    kb_id: document.getElementById('kb-id').value.trim(),
-    kb_version: document.getElementById('kb-ver').value.trim() || 'v1',
-    description: document.getElementById('kb-desc').value.trim(),
-  });
-  showResult('r-create', r);
-  if (r.ok) loadKBs();
+function fillPreset() {
+  document.getElementById('kb-id').value = 'cn-enterprises-v1';
+  document.getElementById('kb-ver').value = 'v1';
+  document.getElementById('kb-desc').value = '中国企业实体库（演示用精简版，完整120条见 tests/fixtures/cn_enterprises_kb.json）';
+  document.getElementById('kb-entities').value = JSON.stringify([
+    {"entity_id":"E001","canonical_name":"国家电网有限公司","entity_type":"ORG","aliases":["国家电网","国网","SGCC"],"former_names":["国家电力公司"],"description":"中国规模最大的公用事业企业，负责全国大部分地区的电力输送与销售。","parent_ids":[],"keywords":["特高压","输电","电网","国有企业","电力"]},
+    {"entity_id":"E016","canonical_name":"华为技术有限公司","entity_type":"ORG","aliases":["华为","Huawei"],"former_names":[],"description":"全球领先的ICT基础设施和智能终端提供商。","parent_ids":[],"keywords":["5G","通信设备","智能手机","芯片","云计算","鸿蒙"]},
+    {"entity_id":"E018","canonical_name":"腾讯控股有限公司","entity_type":"ORG","aliases":["腾讯","Tencent"],"former_names":["深圳市腾讯计算机系统有限公司"],"description":"中国最大的互联网综合服务提供商。","parent_ids":[],"keywords":["社交","游戏","微信","QQ","云服务"]},
+    {"entity_id":"E019","canonical_name":"阿里巴巴集团控股有限公司","entity_type":"ORG","aliases":["阿里巴巴","阿里","Alibaba"],"former_names":["阿里巴巴网络技术有限公司"],"description":"全球最大的零售商务公司。","parent_ids":[],"keywords":["电商","云计算","淘宝","天猫","支付宝"]},
+    {"entity_id":"E036","canonical_name":"中国工商银行股份有限公司","entity_type":"ORG","aliases":["工商银行","工行","ICBC"],"former_names":["中国工商银行"],"description":"中国最大的商业银行。","parent_ids":[],"keywords":["银行","金融","信贷","零售银行"]},
+    {"entity_id":"E042","canonical_name":"中国平安保险（集团）股份有限公司","entity_type":"ORG","aliases":["中国平安","平安","Ping An"],"former_names":["平安保险公司"],"description":"中国最大的综合金融服务集团。","parent_ids":[],"keywords":["保险","银行","金融科技","健康管理"]},
+    {"entity_id":"E014","canonical_name":"宁德时代新能源科技股份有限公司","entity_type":"ORG","aliases":["宁德时代","CATL"],"former_names":[],"description":"全球领先的动力电池及储能系统研发制造企业。","parent_ids":[],"keywords":["动力电池","锂电池","储能","三元锂"]},
+    {"entity_id":"E060","canonical_name":"长城汽车股份有限公司","entity_type":"ORG","aliases":["长城汽车","长城","GWM"],"former_names":["长城汽车制造厂"],"description":"中国最大的SUV和皮卡制造商。","parent_ids":[],"keywords":["SUV","皮卡","哈弗","坦克","新能源"]},
+    {"entity_id":"E096","canonical_name":"贵州茅台酒股份有限公司","entity_type":"ORG","aliases":["贵州茅台","茅台","Moutai"],"former_names":["茅台酒厂"],"description":"中国最著名的高端白酒企业。","parent_ids":[],"keywords":["白酒","酱香","飞天茅台"]},
+    {"entity_id":"E104","canonical_name":"中国移动通信集团有限公司","entity_type":"ORG","aliases":["中国移动","移动","China Mobile"],"former_names":["中国电信（香港）有限公司"],"description":"中国最大的电信运营商。","parent_ids":[],"keywords":["通信","5G","宽带","物联网"]}
+  ], null, 2);
 }
 
-async function importEntities() {
-  const kbId = document.getElementById('imp-kb-id').value.trim();
+async function importKB() {
+  const kbId = document.getElementById('kb-id').value.trim();
+  if (!kbId) { const el=document.getElementById('r-import'); el.className='result-box err'; el.textContent='知识库 ID 不能为空'; return; }
   let entities;
-  try { entities = JSON.parse(document.getElementById('imp-data').value); }
+  try { entities = JSON.parse(document.getElementById('kb-entities').value); }
   catch (e) { const el=document.getElementById('r-import'); el.className='result-box err'; el.textContent='JSON格式错误: '+e.message; return; }
-  const r = await api('POST', `/api/v1/knowledge-bases/${kbId}/entities`, { entities });
+  if (!Array.isArray(entities) || entities.length === 0) { const el=document.getElementById('r-import'); el.className='result-box err'; el.textContent='实体列表不能为空'; return; }
+  const r = await api('POST', '/api/v1/knowledge-bases', {
+    kb_id: kbId,
+    kb_version: document.getElementById('kb-ver').value.trim() || 'v1',
+    description: document.getElementById('kb-desc').value.trim(),
+    entities,
+  });
   showResult('r-import', r);
-  if (r.ok) loadKBs();
+  if (r.ok) { loadKBs(); useKB(kbId, document.getElementById('kb-ver').value.trim() || 'v1'); }
 }
 
 async function loadKBs() {
   const { ok, data } = await api('GET', '/api/v1/knowledge-bases');
   const el = document.getElementById('kb-list');
-  if (!ok || !data.knowledge_bases?.length) { el.innerHTML = '<div class="empty">暂无知识库</div>'; return; }
+  if (!ok || !data.knowledge_bases?.length) { el.innerHTML = '<div class="empty">暂无知识库，点击"填入示例"快速体验</div>'; return; }
   el.innerHTML = data.knowledge_bases.map(kb => `
     <div class="kb-item">
       <div>
         <div class="kb-name">${kb.kb_id}</div>
-        <div class="kb-meta">${kb.description||'无描述'} · 版本 ${kb.kb_version} · ${kb.entity_count} 个实体</div>
+        <div class="kb-meta">${kb.description||'无描述'} · ${kb.kb_version} · ${kb.entity_count} 个实体</div>
       </div>
       <button class="btn-sm" onclick="useKB('${kb.kb_id}','${kb.kb_version}')">使用 →</button>
     </div>`).join('');
 }
 
 function useKB(id, ver) {
-  document.getElementById('lk-kb-id').value = id;
-  document.getElementById('lk-kb-ver').value = ver;
+  const tmpl = JSON.stringify({
+    schema_version: "v1", request_id: "req-" + Date.now(),
+    text: { content: "", language: "zh" },
+    mentions: [],
+    knowledge_base: { kb_id: id, kb_version: ver },
+    options: { top_k: 5, nil_threshold: 0.6, enable_nil: true, enable_coreference: true, return_candidates: true, return_evidence: true, linker_version: "v1" },
+  }, null, 2);
+  document.getElementById('lk-json').value = tmpl;
   switchTab('link');
+}
+
+function fillLinkPreset() {
+  document.getElementById('lk-json').value = JSON.stringify({
+    schema_version: "v1",
+    request_id: "req-preset",
+    text: { content: "国家电网董事长在今日发布会上表示，华为将为公司数字化转型提供技术支持。该公司计划在未来三年投入百亿资金。平安证券分析师对此给予积极评价。", language: "zh" },
+    mentions: [
+      { mention_id: "m1", surface_form: "国家电网", start_offset: 0, end_offset: 4 },
+      { mention_id: "m2", surface_form: "华为", start_offset: 14, end_offset: 16 },
+      { mention_id: "m3", surface_form: "该公司", start_offset: 25, end_offset: 28 },
+      { mention_id: "m4", surface_form: "平安证券", start_offset: 40, end_offset: 44 },
+    ],
+    knowledge_base: { kb_id: "cn-enterprises-v1", kb_version: "v1" },
+    options: { top_k: 5, nil_threshold: 0.6, enable_nil: true, enable_coreference: true, return_candidates: true, return_evidence: true, linker_version: "v1" },
+  }, null, 2);
 }
 
 async function runLink() {
   const btn = document.getElementById('lk-btn');
-  btn.disabled = true;
-  const mentions = document.getElementById('lk-mentions').value.trim().split('\n').filter(Boolean).map(line => {
-    const [mention_id, surface_form, s, e] = line.split('|');
-    return { mention_id, surface_form, start_offset: +s, end_offset: +e };
-  });
-  const reqId = document.getElementById('req-id').value.trim() || ('req-' + Date.now());
-  document.getElementById('req-id').value = reqId;
-  const r = await api('POST', '/api/v1/entity-link', {
-    schema_version: 'v1', request_id: reqId,
-    text: { content: document.getElementById('lk-text').value },
-    mentions,
-    knowledge_base: { kb_id: document.getElementById('lk-kb-id').value.trim(), kb_version: document.getElementById('lk-kb-ver').value.trim() || 'v1' },
-    options: {
-      top_k: 5,
-      nil_threshold: +document.getElementById('lk-nil-th').value,
-      enable_nil: document.getElementById('opt-nil').checked,
-      enable_coreference: document.getElementById('opt-coref').checked,
-      return_candidates: document.getElementById('opt-cand').checked,
-      return_evidence: true,
-    },
-  });
-  btn.disabled = false;
+  const errEl = document.getElementById('lk-err');
+  errEl.style.display = 'none';
+  btn.disabled = true; btn.textContent = '处理中...';
+  let body;
+  try {
+    body = JSON.parse(document.getElementById('lk-json').value);
+  } catch (e) {
+    errEl.textContent = 'JSON 格式错误: ' + e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '▶ 执行链接';
+    return;
+  }
+  if (!body.mentions?.length) {
+    errEl.textContent = 'mentions 不能为空';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = '▶ 执行链接';
+    return;
+  }
+  const r = await api('POST', '/api/v1/entity-link', body);
+  btn.disabled = false; btn.textContent = '▶ 执行链接';
   renderResult(r);
 }
 
@@ -248,6 +273,7 @@ function renderCard(r) {
   </div>`;
 }
 
+// 启动
 checkHealth();
 loadKBs();
 </script>

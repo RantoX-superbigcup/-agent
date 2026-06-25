@@ -1,0 +1,2571 @@
+{
+  "kb_id": "cn-enterprises-v1",
+  "kb_version": "v1",
+  "description": "中国企业实体库——覆盖能源、IT、金融、汽车、航空、建筑、医药、食品、通信、物流、钢铁等11个行业，共120个实体。",
+  "entities": [
+    {
+      "entity_id": "E001",
+      "canonical_name": "国家电网有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "国家电网",
+        "国网",
+        "SGCC"
+      ],
+      "former_names": [
+        "国家电力公司"
+      ],
+      "description": "中国规模最大的公用事业企业，负责全国大部分地区的电力输送与销售。",
+      "parent_ids": [],
+      "keywords": [
+        "特高压",
+        "输电",
+        "电网",
+        "国有企业",
+        "电力"
+      ]
+    },
+    {
+      "entity_id": "E002",
+      "canonical_name": "中国南方电网有限责任公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "南方电网",
+        "南网",
+        "CSG"
+      ],
+      "former_names": [
+        "中国南方电网公司"
+      ],
+      "description": "负责广东、广西、云南、贵州、海南五省区供电的国有电网企业。",
+      "parent_ids": [],
+      "keywords": [
+        "电网",
+        "南方",
+        "广东",
+        "广西",
+        "云南",
+        "贵州",
+        "海南"
+      ]
+    },
+    {
+      "entity_id": "E003",
+      "canonical_name": "中国华能集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "华能集团",
+        "中国华能",
+        "华能"
+      ],
+      "former_names": [
+        "中国华能集团公司"
+      ],
+      "description": "中国五大发电集团之一，拥有火电、水电、风电等多种能源资产。",
+      "parent_ids": [],
+      "keywords": [
+        "发电",
+        "火电",
+        "风电",
+        "水电",
+        "煤电"
+      ]
+    },
+    {
+      "entity_id": "E004",
+      "canonical_name": "中国华电集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "华电集团",
+        "中国华电",
+        "华电"
+      ],
+      "former_names": [
+        "中国华电集团公司"
+      ],
+      "description": "中国五大发电集团之一，主营电力生产、热力生产和供应。",
+      "parent_ids": [],
+      "keywords": [
+        "发电",
+        "火电",
+        "天然气",
+        "分布式能源",
+        "热电联产"
+      ]
+    },
+    {
+      "entity_id": "E005",
+      "canonical_name": "国家能源投资集团有限责任公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "国家能源集团",
+        "国能集团",
+        "国能"
+      ],
+      "former_names": [
+        "神华集团有限责任公司"
+      ],
+      "description": "全球最大的煤炭生产、火力发电、风力发电企业。",
+      "parent_ids": [],
+      "keywords": [
+        "煤炭",
+        "火电",
+        "风电",
+        "煤化工",
+        "铁路"
+      ]
+    },
+    {
+      "entity_id": "E006",
+      "canonical_name": "中国大唐集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "大唐集团",
+        "中国大唐",
+        "大唐"
+      ],
+      "former_names": [
+        "中国大唐集团公司"
+      ],
+      "description": "中国五大发电集团之一，主营电力、煤炭、金融等产业。",
+      "parent_ids": [],
+      "keywords": [
+        "发电",
+        "煤炭",
+        "金融",
+        "环保"
+      ]
+    },
+    {
+      "entity_id": "E007",
+      "canonical_name": "国家电力投资集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "国家电投",
+        "国电投",
+        "SPIC"
+      ],
+      "former_names": [
+        "中国电力投资集团公司"
+      ],
+      "description": "中国五大发电集团之一，清洁能源占比最高的发电央企。",
+      "parent_ids": [],
+      "keywords": [
+        "核电",
+        "光伏",
+        "风电",
+        "水电",
+        "清洁能源"
+      ]
+    },
+    {
+      "entity_id": "E008",
+      "canonical_name": "中国广核集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中广核",
+        "CGN"
+      ],
+      "former_names": [
+        "中国广东核电集团有限公司"
+      ],
+      "description": "中国最大的核电运营商，也是全球第三大核电企业。",
+      "parent_ids": [],
+      "keywords": [
+        "核电",
+        "核能",
+        "清洁能源",
+        "铀矿",
+        "风电"
+      ]
+    },
+    {
+      "entity_id": "E009",
+      "canonical_name": "中国核工业集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中核集团",
+        "CNNC"
+      ],
+      "former_names": [
+        "第二机械工业部"
+      ],
+      "description": "中国核工业的主力军，承担核军工、核电、核燃料等核心任务。",
+      "parent_ids": [],
+      "keywords": [
+        "核电",
+        "核燃料",
+        "核技术",
+        "军工",
+        "铀浓缩"
+      ]
+    },
+    {
+      "entity_id": "E010",
+      "canonical_name": "中国石油天然气集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国石油",
+        "中石油",
+        "CNPC"
+      ],
+      "former_names": [
+        "石油工业部"
+      ],
+      "description": "中国最大的原油和天然气生产商和供应商。",
+      "parent_ids": [],
+      "keywords": [
+        "石油",
+        "天然气",
+        "勘探",
+        "炼化",
+        "管道"
+      ]
+    },
+    {
+      "entity_id": "E011",
+      "canonical_name": "中国石油化工集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国石化",
+        "中石化",
+        "Sinopec"
+      ],
+      "former_names": [
+        "中国石油化工总公司"
+      ],
+      "description": "中国最大的成品油和石化产品供应商，第二大油气生产商。",
+      "parent_ids": [],
+      "keywords": [
+        "炼油",
+        "化工",
+        "成品油",
+        "乙烯",
+        "加油站"
+      ]
+    },
+    {
+      "entity_id": "E012",
+      "canonical_name": "中国海洋石油集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国海油",
+        "中海油",
+        "CNOOC"
+      ],
+      "former_names": [
+        "中国海洋石油总公司"
+      ],
+      "description": "中国最大的海上油气生产商。",
+      "parent_ids": [],
+      "keywords": [
+        "海上石油",
+        "天然气",
+        "LNG",
+        "深水勘探"
+      ]
+    },
+    {
+      "entity_id": "E013",
+      "canonical_name": "中国中化控股有限责任公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国中化",
+        "中化集团",
+        "Sinochem"
+      ],
+      "former_names": [
+        "中国化工进出口总公司"
+      ],
+      "description": "全球规模领先的化工企业，业务覆盖生命科学、材料科学等。",
+      "parent_ids": [],
+      "keywords": [
+        "化工",
+        "农药",
+        "种子",
+        "橡胶",
+        "氟化工"
+      ]
+    },
+    {
+      "entity_id": "E014",
+      "canonical_name": "宁德时代新能源科技股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "宁德时代",
+        "CATL"
+      ],
+      "former_names": [
+        "宁德时代新能源科技有限公司"
+      ],
+      "description": "全球领先的动力电池及储能系统研发制造企业。",
+      "parent_ids": [],
+      "keywords": [
+        "动力电池",
+        "锂电池",
+        "储能",
+        "三元锂",
+        "磷酸铁锂"
+      ]
+    },
+    {
+      "entity_id": "E015",
+      "canonical_name": "比亚迪股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "比亚迪",
+        "BYD"
+      ],
+      "former_names": [
+        "比亚迪实业有限公司"
+      ],
+      "description": "全球领先的新能源汽车和动力电池制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "新能源汽车",
+        "电池",
+        "光伏",
+        "储能",
+        "轨道交通"
+      ]
+    },
+    {
+      "entity_id": "E016",
+      "canonical_name": "华为技术有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "华为",
+        "Huawei"
+      ],
+      "former_names": [
+        "华为技术有限公司"
+      ],
+      "description": "全球领先的ICT基础设施和智能终端提供商。",
+      "parent_ids": [],
+      "keywords": [
+        "5G",
+        "通信设备",
+        "智能手机",
+        "芯片",
+        "云计算",
+        "鸿蒙"
+      ]
+    },
+    {
+      "entity_id": "E017",
+      "canonical_name": "中兴通讯股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中兴通讯",
+        "中兴",
+        "ZTE"
+      ],
+      "former_names": [
+        "中兴半导体有限公司"
+      ],
+      "description": "全球领先的通信设备制造商和5G解决方案提供商。",
+      "parent_ids": [],
+      "keywords": [
+        "5G",
+        "通信",
+        "基站",
+        "光传输",
+        "芯片"
+      ]
+    },
+    {
+      "entity_id": "E018",
+      "canonical_name": "腾讯控股有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "腾讯",
+        "Tencent"
+      ],
+      "former_names": [
+        "深圳市腾讯计算机系统有限公司"
+      ],
+      "description": "中国最大的互联网综合服务提供商，旗下拥有微信、QQ等产品。",
+      "parent_ids": [],
+      "keywords": [
+        "社交",
+        "游戏",
+        "微信",
+        "QQ",
+        "云服务",
+        "金融科技"
+      ]
+    },
+    {
+      "entity_id": "E019",
+      "canonical_name": "阿里巴巴集团控股有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "阿里巴巴",
+        "阿里",
+        "Alibaba"
+      ],
+      "former_names": [
+        "阿里巴巴网络技术有限公司"
+      ],
+      "description": "全球最大的零售商务公司，业务涵盖电商、云计算、数字娱乐等。",
+      "parent_ids": [],
+      "keywords": [
+        "电商",
+        "云计算",
+        "淘宝",
+        "天猫",
+        "菜鸟",
+        "支付宝"
+      ]
+    },
+    {
+      "entity_id": "E020",
+      "canonical_name": "字节跳动有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "字节跳动",
+        "ByteDance"
+      ],
+      "former_names": [
+        "北京字节跳动科技有限公司"
+      ],
+      "description": "全球领先的移动互联网科技公司，旗下拥有抖音、TikTok。",
+      "parent_ids": [],
+      "keywords": [
+        "短视频",
+        "推荐算法",
+        "抖音",
+        "TikTok",
+        "信息流"
+      ]
+    },
+    {
+      "entity_id": "E021",
+      "canonical_name": "百度集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "百度",
+        "Baidu"
+      ],
+      "former_names": [
+        "百度在线网络技术（北京）有限公司"
+      ],
+      "description": "中国最大的搜索引擎公司，在AI和自动驾驶领域领先。",
+      "parent_ids": [],
+      "keywords": [
+        "搜索引擎",
+        "AI",
+        "自动驾驶",
+        "文心一言",
+        "深度学习"
+      ]
+    },
+    {
+      "entity_id": "E022",
+      "canonical_name": "京东集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "京东",
+        "JD.com"
+      ],
+      "former_names": [
+        "京东世纪贸易有限公司"
+      ],
+      "description": "中国领先的自营式电商企业和物流基础设施服务商。",
+      "parent_ids": [],
+      "keywords": [
+        "电商",
+        "物流",
+        "京东物流",
+        "供应链",
+        "自营"
+      ]
+    },
+    {
+      "entity_id": "E023",
+      "canonical_name": "美团",
+      "entity_type": "ORG",
+      "aliases": [
+        "美团",
+        "Meituan"
+      ],
+      "former_names": [
+        "美团点评"
+      ],
+      "description": "中国领先的生活服务电子商务平台，业务涵盖外卖、到店、酒店旅游等。",
+      "parent_ids": [],
+      "keywords": [
+        "外卖",
+        "本地生活",
+        "酒店",
+        "旅游",
+        "共享单车"
+      ]
+    },
+    {
+      "entity_id": "E024",
+      "canonical_name": "拼多多控股有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "拼多多",
+        "PDD"
+      ],
+      "former_names": [
+        "上海寻梦信息技术有限公司"
+      ],
+      "description": "中国领先的社交电商平台，以拼团模式和高性价比著称。",
+      "parent_ids": [],
+      "keywords": [
+        "社交电商",
+        "拼团",
+        "农产品",
+        "跨境电商",
+        "Temu"
+      ]
+    },
+    {
+      "entity_id": "E025",
+      "canonical_name": "网易集团",
+      "entity_type": "ORG",
+      "aliases": [
+        "网易",
+        "NetEase"
+      ],
+      "former_names": [
+        "网易计算机系统有限公司"
+      ],
+      "description": "中国领先的互联网科技公司，主营游戏、音乐、教育等。",
+      "parent_ids": [],
+      "keywords": [
+        "游戏",
+        "音乐",
+        "教育",
+        "电商",
+        "邮箱"
+      ]
+    },
+    {
+      "entity_id": "E026",
+      "canonical_name": "小米集团",
+      "entity_type": "ORG",
+      "aliases": [
+        "小米",
+        "Xiaomi",
+        "Mi"
+      ],
+      "former_names": [
+        "小米科技有限责任公司"
+      ],
+      "description": "全球领先的智能手机和智能硬件制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "智能手机",
+        "IoT",
+        "智能家居",
+        "MIUI",
+        "生态链"
+      ]
+    },
+    {
+      "entity_id": "E027",
+      "canonical_name": "联想集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "联想",
+        "Lenovo"
+      ],
+      "former_names": [
+        "联想集团"
+      ],
+      "description": "全球最大的个人电脑制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "PC",
+        "服务器",
+        "笔记本电脑",
+        "ThinkPad",
+        "数据中心"
+      ]
+    },
+    {
+      "entity_id": "E028",
+      "canonical_name": "海康威视数字技术股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "海康威视",
+        "Hikvision"
+      ],
+      "former_names": [
+        "杭州海康威视数字技术有限公司"
+      ],
+      "description": "全球领先的安防产品和解决方案提供商。",
+      "parent_ids": [],
+      "keywords": [
+        "安防",
+        "摄像头",
+        "AI",
+        "视频分析",
+        "智能交通"
+      ]
+    },
+    {
+      "entity_id": "E029",
+      "canonical_name": "科大讯飞股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "科大讯飞",
+        "iFlytek"
+      ],
+      "former_names": [
+        "安徽科大讯飞信息科技有限公司"
+      ],
+      "description": "中国最大的智能语音和人工智能企业。",
+      "parent_ids": [],
+      "keywords": [
+        "语音识别",
+        "AI",
+        "教育",
+        "NLP",
+        "翻译"
+      ]
+    },
+    {
+      "entity_id": "E030",
+      "canonical_name": "中芯国际集成电路制造有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中芯国际",
+        "SMIC"
+      ],
+      "former_names": [
+        "中芯国际集成电路制造（上海）有限公司"
+      ],
+      "description": "中国最大的半导体芯片制造企业。",
+      "parent_ids": [],
+      "keywords": [
+        "芯片",
+        "晶圆代工",
+        "半导体",
+        "集成电路",
+        "光刻"
+      ]
+    },
+    {
+      "entity_id": "E031",
+      "canonical_name": "浪潮集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "浪潮",
+        "Inspur"
+      ],
+      "former_names": [
+        "山东浪潮电子信息产业集团公司"
+      ],
+      "description": "中国领先的云计算和大数据服务商。",
+      "parent_ids": [],
+      "keywords": [
+        "服务器",
+        "云计算",
+        "大数据",
+        "AI服务器",
+        "存储"
+      ]
+    },
+    {
+      "entity_id": "E032",
+      "canonical_name": "紫光股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "紫光股份",
+        "紫光",
+        "Unis"
+      ],
+      "former_names": [
+        "清华紫光股份有限公司"
+      ],
+      "description": "中国领先的ICT基础设施及服务提供商。",
+      "parent_ids": [],
+      "keywords": [
+        "芯片",
+        "云计算",
+        "ICT",
+        "路由器",
+        "交换机"
+      ]
+    },
+    {
+      "entity_id": "E033",
+      "canonical_name": "用友网络科技股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "用友",
+        "Yonyou"
+      ],
+      "former_names": [
+        "用友软件股份有限公司"
+      ],
+      "description": "中国最大的企业管理软件和云服务提供商。",
+      "parent_ids": [],
+      "keywords": [
+        "ERP",
+        "企业软件",
+        "云服务",
+        "财务软件",
+        "SaaS"
+      ]
+    },
+    {
+      "entity_id": "E034",
+      "canonical_name": "金山软件有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "金山软件",
+        "金山",
+        "Kingsoft"
+      ],
+      "former_names": [
+        "金山公司"
+      ],
+      "description": "中国领先的办公软件和互联网服务企业，旗下拥有WPS。",
+      "parent_ids": [],
+      "keywords": [
+        "办公软件",
+        "WPS",
+        "游戏",
+        "云服务",
+        "金山毒霸"
+      ]
+    },
+    {
+      "entity_id": "E035",
+      "canonical_name": "商汤科技集团",
+      "entity_type": "ORG",
+      "aliases": [
+        "商汤科技",
+        "商汤",
+        "SenseTime"
+      ],
+      "former_names": [
+        "商汤科技开发有限公司"
+      ],
+      "description": "全球领先的人工智能软件公司，专注于计算机视觉和深度学习。",
+      "parent_ids": [],
+      "keywords": [
+        "AI",
+        "计算机视觉",
+        "自动驾驶",
+        "医疗AI",
+        "深度学习"
+      ]
+    },
+    {
+      "entity_id": "E036",
+      "canonical_name": "中国工商银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "工商银行",
+        "工行",
+        "ICBC"
+      ],
+      "former_names": [
+        "中国工商银行"
+      ],
+      "description": "中国最大的商业银行。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "金融",
+        "信贷",
+        "零售银行",
+        "对公业务"
+      ]
+    },
+    {
+      "entity_id": "E037",
+      "canonical_name": "中国建设银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "建设银行",
+        "建行",
+        "CCB"
+      ],
+      "former_names": [
+        "中国建设银行"
+      ],
+      "description": "中国第二大商业银行，在基础设施融资领域具有传统优势。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "基建融资",
+        "房贷",
+        "金融科技",
+        "普惠金融"
+      ]
+    },
+    {
+      "entity_id": "E038",
+      "canonical_name": "中国农业银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "农业银行",
+        "农行",
+        "ABC"
+      ],
+      "former_names": [
+        "中国农业银行"
+      ],
+      "description": "中国第三大商业银行，在县域金融和农村金融领域具优势。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "三农",
+        "县域金融",
+        "普惠金融",
+        "惠农"
+      ]
+    },
+    {
+      "entity_id": "E039",
+      "canonical_name": "中国银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国银行",
+        "中行",
+        "BOC"
+      ],
+      "former_names": [
+        "中国银行"
+      ],
+      "description": "中国全球化和综合化程度最高的银行，国际业务领先。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "外汇",
+        "国际业务",
+        "跨境金融",
+        "贸易融资"
+      ]
+    },
+    {
+      "entity_id": "E040",
+      "canonical_name": "交通银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "交通银行",
+        "交行",
+        "BOCOM"
+      ],
+      "former_names": [
+        "交通银行"
+      ],
+      "description": "中国第五大商业银行，总部位于上海。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "财富管理",
+        "信用卡",
+        "离岸金融"
+      ]
+    },
+    {
+      "entity_id": "E041",
+      "canonical_name": "招商银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "招商银行",
+        "招行",
+        "CMB"
+      ],
+      "former_names": [
+        "招商银行"
+      ],
+      "description": "中国领先的股份制商业银行，零售银行业务突出。",
+      "parent_ids": [],
+      "keywords": [
+        "零售银行",
+        "财富管理",
+        "信用卡",
+        "私人银行",
+        "金融科技"
+      ]
+    },
+    {
+      "entity_id": "E042",
+      "canonical_name": "中国平安保险（集团）股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国平安",
+        "平安",
+        "Ping An"
+      ],
+      "former_names": [
+        "平安保险公司"
+      ],
+      "description": "中国最大的综合金融服务集团。",
+      "parent_ids": [],
+      "keywords": [
+        "保险",
+        "银行",
+        "金融科技",
+        "健康管理",
+        "陆金所"
+      ]
+    },
+    {
+      "entity_id": "E043",
+      "canonical_name": "中国人寿保险（集团）公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国人寿",
+        "国寿",
+        "China Life"
+      ],
+      "former_names": [
+        "中国人民保险公司"
+      ],
+      "description": "中国最大的人寿保险集团。",
+      "parent_ids": [],
+      "keywords": [
+        "寿险",
+        "健康险",
+        "养老险",
+        "资产管理"
+      ]
+    },
+    {
+      "entity_id": "E044",
+      "canonical_name": "中信证券股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中信证券",
+        "CITIC Securities"
+      ],
+      "former_names": [
+        "中信证券有限责任公司"
+      ],
+      "description": "中国最大的证券公司。",
+      "parent_ids": [],
+      "keywords": [
+        "券商",
+        "投行",
+        "经纪",
+        "资管",
+        "研究"
+      ]
+    },
+    {
+      "entity_id": "E045",
+      "canonical_name": "蚂蚁科技集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "蚂蚁集团",
+        "蚂蚁",
+        "Ant Group"
+      ],
+      "former_names": [
+        "蚂蚁金服"
+      ],
+      "description": "全球领先的金融科技企业，旗下拥有支付宝等产品。",
+      "parent_ids": [],
+      "keywords": [
+        "支付",
+        "金融科技",
+        "支付宝",
+        "花呗",
+        "芝麻信用"
+      ]
+    },
+    {
+      "entity_id": "E046",
+      "canonical_name": "中国民生银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "民生银行",
+        "CMBC"
+      ],
+      "former_names": [
+        "中国民生银行"
+      ],
+      "description": "中国首家主要由民营企业发起设立的全国性股份制商业银行。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "民营企业",
+        "小微金融",
+        "供应链金融"
+      ]
+    },
+    {
+      "entity_id": "E047",
+      "canonical_name": "兴业银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "兴业银行",
+        "CIB"
+      ],
+      "former_names": [
+        "福建兴业银行"
+      ],
+      "description": "中国领先的股份制商业银行，绿色金融业务特色突出。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "绿色金融",
+        "同业业务",
+        "资产管理"
+      ]
+    },
+    {
+      "entity_id": "E048",
+      "canonical_name": "上海浦东发展银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "浦发银行",
+        "SPDB"
+      ],
+      "former_names": [
+        "上海浦东发展银行"
+      ],
+      "description": "总部位于上海的全国性股份制商业银行。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "公司金融",
+        "零售银行",
+        "科技金融"
+      ]
+    },
+    {
+      "entity_id": "E049",
+      "canonical_name": "中信银行股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中信银行",
+        "CITIC Bank"
+      ],
+      "former_names": [
+        "中信实业银行"
+      ],
+      "description": "中信集团旗下的全国性股份制商业银行。",
+      "parent_ids": [],
+      "keywords": [
+        "银行",
+        "对公业务",
+        "国际业务",
+        "财富管理"
+      ]
+    },
+    {
+      "entity_id": "E050",
+      "canonical_name": "中国人民保险集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国人保",
+        "PICC"
+      ],
+      "former_names": [
+        "中国人民保险公司"
+      ],
+      "description": "中国最大的财产保险公司。",
+      "parent_ids": [],
+      "keywords": [
+        "财险",
+        "车险",
+        "农业险",
+        "再保险"
+      ]
+    },
+    {
+      "entity_id": "E051",
+      "canonical_name": "中国太平洋保险（集团）股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "太平洋保险",
+        "太保",
+        "CPIC"
+      ],
+      "former_names": [
+        "中国太平洋保险公司"
+      ],
+      "description": "中国领先的综合性保险集团。",
+      "parent_ids": [],
+      "keywords": [
+        "保险",
+        "财险",
+        "寿险",
+        "养老险"
+      ]
+    },
+    {
+      "entity_id": "E052",
+      "canonical_name": "华泰证券股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "华泰证券",
+        "HTSC"
+      ],
+      "former_names": [
+        "华泰证券有限责任公司"
+      ],
+      "description": "中国领先的综合证券集团。",
+      "parent_ids": [],
+      "keywords": [
+        "券商",
+        "投行",
+        "财富管理",
+        "涨乐财富通"
+      ]
+    },
+    {
+      "entity_id": "E053",
+      "canonical_name": "海通证券股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "海通证券",
+        "Haitong"
+      ],
+      "former_names": [
+        "海通证券有限公司"
+      ],
+      "description": "中国大型综合券商，投行和资管业务实力强劲。",
+      "parent_ids": [],
+      "keywords": [
+        "券商",
+        "投行",
+        "资管",
+        "研究",
+        "期货"
+      ]
+    },
+    {
+      "entity_id": "E054",
+      "canonical_name": "上海汽车集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "上汽集团",
+        "上汽",
+        "SAIC"
+      ],
+      "former_names": [
+        "上海汽车工业总公司"
+      ],
+      "description": "中国最大的汽车制造商，合资品牌包括大众、通用等。",
+      "parent_ids": [],
+      "keywords": [
+        "汽车",
+        "新能源汽车",
+        "智能驾驶",
+        "名爵",
+        "荣威"
+      ]
+    },
+    {
+      "entity_id": "E055",
+      "canonical_name": "中国第一汽车集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "一汽集团",
+        "一汽",
+        "FAW"
+      ],
+      "former_names": [
+        "第一汽车制造厂"
+      ],
+      "description": "中国历史最悠久的汽车制造企业。",
+      "parent_ids": [],
+      "keywords": [
+        "汽车",
+        "红旗",
+        "解放",
+        "商用车",
+        "合资"
+      ]
+    },
+    {
+      "entity_id": "E056",
+      "canonical_name": "东风汽车集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "东风汽车",
+        "东风",
+        "DFM"
+      ],
+      "former_names": [
+        "第二汽车制造厂"
+      ],
+      "description": "中国四大汽车集团之一，总部位于武汉。",
+      "parent_ids": [],
+      "keywords": [
+        "汽车",
+        "商用车",
+        "军车",
+        "合资",
+        "新能源"
+      ]
+    },
+    {
+      "entity_id": "E057",
+      "canonical_name": "广州汽车集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "广汽集团",
+        "广汽",
+        "GAC"
+      ],
+      "former_names": [
+        "广州汽车集团有限公司"
+      ],
+      "description": "总部位于广州的大型国有汽车集团。",
+      "parent_ids": [],
+      "keywords": [
+        "汽车",
+        "新能源汽车",
+        "传祺",
+        "埃安",
+        "合资"
+      ]
+    },
+    {
+      "entity_id": "E058",
+      "canonical_name": "北京汽车集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "北汽集团",
+        "北汽",
+        "BAIC"
+      ],
+      "former_names": [
+        "北京汽车工业总公司"
+      ],
+      "description": "中国大型国有汽车集团，合资品牌包括奔驰、现代等。",
+      "parent_ids": [],
+      "keywords": [
+        "汽车",
+        "新能源汽车",
+        "奔驰",
+        "北京现代",
+        "BJ系列"
+      ]
+    },
+    {
+      "entity_id": "E059",
+      "canonical_name": "浙江吉利控股集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "吉利汽车",
+        "吉利",
+        "Geely"
+      ],
+      "former_names": [
+        "吉利集团有限公司"
+      ],
+      "description": "中国领先的民营汽车制造商，收购了沃尔沃、路特斯等品牌。",
+      "parent_ids": [],
+      "keywords": [
+        "汽车",
+        "沃尔沃",
+        "领克",
+        "极氪",
+        "新能源"
+      ]
+    },
+    {
+      "entity_id": "E060",
+      "canonical_name": "长城汽车股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "长城汽车",
+        "长城",
+        "GWM"
+      ],
+      "former_names": [
+        "长城汽车制造厂"
+      ],
+      "description": "中国最大的SUV和皮卡制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "SUV",
+        "皮卡",
+        "哈弗",
+        "坦克",
+        "欧拉",
+        "新能源"
+      ]
+    },
+    {
+      "entity_id": "E061",
+      "canonical_name": "蔚来汽车有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "蔚来",
+        "NIO"
+      ],
+      "former_names": [
+        "蔚来汽车"
+      ],
+      "description": "中国领先的高端智能电动汽车制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "电动汽车",
+        "换电",
+        "自动驾驶",
+        "智能座舱"
+      ]
+    },
+    {
+      "entity_id": "E062",
+      "canonical_name": "理想汽车有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "理想汽车",
+        "理想",
+        "Li Auto"
+      ],
+      "former_names": [
+        "理想汽车"
+      ],
+      "description": "中国领先的新能源汽车制造商，以增程式电动SUV闻名。",
+      "parent_ids": [],
+      "keywords": [
+        "增程式",
+        "SUV",
+        "新能源",
+        "家庭用车",
+        "智能驾驶"
+      ]
+    },
+    {
+      "entity_id": "E063",
+      "canonical_name": "小鹏汽车有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "小鹏汽车",
+        "小鹏",
+        "XPeng"
+      ],
+      "former_names": [
+        "小鹏汽车"
+      ],
+      "description": "中国领先的智能电动汽车制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "电动汽车",
+        "自动驾驶",
+        "智能座舱",
+        "飞行汽车"
+      ]
+    },
+    {
+      "entity_id": "E064",
+      "canonical_name": "重庆长安汽车股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "长安汽车",
+        "长安",
+        "Changan"
+      ],
+      "former_names": [
+        "长安机器制造厂"
+      ],
+      "description": "中国大型国有汽车制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "汽车",
+        "新能源",
+        "深蓝",
+        "福特",
+        "马自达"
+      ]
+    },
+    {
+      "entity_id": "E065",
+      "canonical_name": "赛力斯集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "赛力斯",
+        "问界",
+        "Seres"
+      ],
+      "former_names": [
+        "小康股份"
+      ],
+      "description": "与华为深度合作的新能源汽车制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "新能源",
+        "问界",
+        "华为智选",
+        "SUV",
+        "增程式"
+      ]
+    },
+    {
+      "entity_id": "E066",
+      "canonical_name": "中国航空工业集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "航空工业",
+        "中航工业",
+        "AVIC"
+      ],
+      "former_names": [
+        "中国航空工业总公司"
+      ],
+      "description": "中国最大的航空装备制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "航空",
+        "飞机",
+        "战斗机",
+        "无人机",
+        "直升机"
+      ]
+    },
+    {
+      "entity_id": "E067",
+      "canonical_name": "中国航天科技集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "航天科技",
+        "CASC"
+      ],
+      "former_names": [
+        "中国航天工业总公司"
+      ],
+      "description": "中国航天事业的主导力量，承担载人航天、月球探测等重大工程。",
+      "parent_ids": [],
+      "keywords": [
+        "航天",
+        "火箭",
+        "卫星",
+        "载人航天",
+        "探月"
+      ]
+    },
+    {
+      "entity_id": "E068",
+      "canonical_name": "中国航天科工集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "航天科工",
+        "CASIC"
+      ],
+      "former_names": [
+        "中国航天工业总公司"
+      ],
+      "description": "中国导弹武器系统和航天防务装备的主要研制生产商。",
+      "parent_ids": [],
+      "keywords": [
+        "导弹",
+        "防空",
+        "航天",
+        "雷达",
+        "信息技术"
+      ]
+    },
+    {
+      "entity_id": "E069",
+      "canonical_name": "中国商用飞机有限责任公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国商飞",
+        "商飞",
+        "COMAC"
+      ],
+      "former_names": [
+        "中国商用飞机有限责任公司"
+      ],
+      "description": "中国大型客机项目的主体，研制了C919和ARJ21飞机。",
+      "parent_ids": [],
+      "keywords": [
+        "大飞机",
+        "C919",
+        "ARJ21",
+        "民航",
+        "航空制造"
+      ]
+    },
+    {
+      "entity_id": "E070",
+      "canonical_name": "中国航空发动机集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国航发",
+        "AECC"
+      ],
+      "former_names": [
+        "中国航空发动机集团有限公司"
+      ],
+      "description": "中国航空发动机研制和生产的主力军。",
+      "parent_ids": [],
+      "keywords": [
+        "发动机",
+        "航空",
+        "燃气轮机",
+        "涡轮",
+        "涡扇"
+      ]
+    },
+    {
+      "entity_id": "E071",
+      "canonical_name": "中国东方航空集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "东方航空",
+        "东航",
+        "China Eastern"
+      ],
+      "former_names": [
+        "中国东方航空公司"
+      ],
+      "description": "中国三大国有航空公司之一，总部位于上海。",
+      "parent_ids": [],
+      "keywords": [
+        "航空",
+        "民航",
+        "客运",
+        "货运",
+        "上海"
+      ]
+    },
+    {
+      "entity_id": "E072",
+      "canonical_name": "中国南方航空集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "南方航空",
+        "南航",
+        "China Southern"
+      ],
+      "former_names": [
+        "中国南方航空公司"
+      ],
+      "description": "中国三大国有航空公司之一，总部位于广州。",
+      "parent_ids": [],
+      "keywords": [
+        "航空",
+        "民航",
+        "客运",
+        "货运",
+        "广州"
+      ]
+    },
+    {
+      "entity_id": "E073",
+      "canonical_name": "中国国际航空股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国国航",
+        "国航",
+        "Air China"
+      ],
+      "former_names": [
+        "中国国际航空公司"
+      ],
+      "description": "中国三大国有航空公司之一，总部位于北京。",
+      "parent_ids": [],
+      "keywords": [
+        "航空",
+        "民航",
+        "客运",
+        "货运",
+        "北京"
+      ]
+    },
+    {
+      "entity_id": "E074",
+      "canonical_name": "中国建筑集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国建筑",
+        "中建",
+        "CSCEC"
+      ],
+      "former_names": [
+        "中国建筑工程总公司"
+      ],
+      "description": "全球最大的建筑企业。",
+      "parent_ids": [],
+      "keywords": [
+        "建筑",
+        "房地产",
+        "基建",
+        "超高层",
+        "海外工程"
+      ]
+    },
+    {
+      "entity_id": "E075",
+      "canonical_name": "中国铁路工程集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国中铁",
+        "中铁",
+        "CREC"
+      ],
+      "former_names": [
+        "铁道部工程局"
+      ],
+      "description": "全球最大的铁路和公路基础设施建设企业之一。",
+      "parent_ids": [],
+      "keywords": [
+        "铁路",
+        "高铁",
+        "基建",
+        "桥梁",
+        "隧道"
+      ]
+    },
+    {
+      "entity_id": "E076",
+      "canonical_name": "中国交通建设集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国交建",
+        "中交",
+        "CCCC"
+      ],
+      "former_names": [
+        "中国交通建设股份有限公司"
+      ],
+      "description": "全球领先的港口、公路、桥梁等基础设施建设企业。",
+      "parent_ids": [],
+      "keywords": [
+        "港口",
+        "公路",
+        "桥梁",
+        "疏浚",
+        "海外工程"
+      ]
+    },
+    {
+      "entity_id": "E077",
+      "canonical_name": "中国铁建股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国铁建",
+        "铁建",
+        "CRCC"
+      ],
+      "former_names": [
+        "铁道兵"
+      ],
+      "description": "中国最大的铁路建设企业之一。",
+      "parent_ids": [],
+      "keywords": [
+        "铁路",
+        "高铁",
+        "基建",
+        "隧道",
+        "海外"
+      ]
+    },
+    {
+      "entity_id": "E078",
+      "canonical_name": "万科企业股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "万科",
+        "Vanke"
+      ],
+      "former_names": [
+        "深圳万科企业股份有限公司"
+      ],
+      "description": "中国最大的房地产开发企业之一。",
+      "parent_ids": [],
+      "keywords": [
+        "房地产",
+        "住宅",
+        "物业",
+        "长租公寓"
+      ]
+    },
+    {
+      "entity_id": "E079",
+      "canonical_name": "碧桂园控股有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "碧桂园",
+        "Country Garden"
+      ],
+      "former_names": [
+        "碧桂园房地产开发有限公司"
+      ],
+      "description": "中国最大的新型城镇化住宅开发商。",
+      "parent_ids": [],
+      "keywords": [
+        "房地产",
+        "住宅",
+        "物业",
+        "建筑机器人"
+      ]
+    },
+    {
+      "entity_id": "E080",
+      "canonical_name": "中国电力建设集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国电建",
+        "电建",
+        "PowerChina"
+      ],
+      "former_names": [
+        "中国电力建设集团有限公司"
+      ],
+      "description": "全球最大的电力工程承包商和设计商。",
+      "parent_ids": [],
+      "keywords": [
+        "电力工程",
+        "水电",
+        "基建",
+        "新能源",
+        "海外工程"
+      ]
+    },
+    {
+      "entity_id": "E081",
+      "canonical_name": "中国能源建设集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国能建",
+        "能建",
+        "Energy China"
+      ],
+      "former_names": [
+        "中国能源建设集团有限公司"
+      ],
+      "description": "中国领先的能源电力和基础设施领域的综合性集团。",
+      "parent_ids": [],
+      "keywords": [
+        "电力设计",
+        "工程",
+        "能源",
+        "基建"
+      ]
+    },
+    {
+      "entity_id": "E082",
+      "canonical_name": "保利发展控股集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "保利发展",
+        "保利",
+        "Poly"
+      ],
+      "former_names": [
+        "保利房地产（集团）股份有限公司"
+      ],
+      "description": "中国大型房地产开发商，央企下属企业。",
+      "parent_ids": [],
+      "keywords": [
+        "房地产",
+        "住宅",
+        "商业地产",
+        "物业"
+      ]
+    },
+    {
+      "entity_id": "E083",
+      "canonical_name": "华润置地有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "华润置地",
+        "CR Land"
+      ],
+      "former_names": [
+        "华润置地（北京）股份有限公司"
+      ],
+      "description": "华润集团旗下的地产业务平台。",
+      "parent_ids": [],
+      "keywords": [
+        "地产",
+        "商业地产",
+        "住宅",
+        "万象城",
+        "写字楼"
+      ]
+    },
+    {
+      "entity_id": "E084",
+      "canonical_name": "中国医药集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "国药集团",
+        "国药",
+        "Sinopharm"
+      ],
+      "former_names": [
+        "中国医药公司"
+      ],
+      "description": "中国最大的医药健康产业集团。",
+      "parent_ids": [],
+      "keywords": [
+        "医药",
+        "疫苗",
+        "分销",
+        "中药",
+        "医疗设备"
+      ]
+    },
+    {
+      "entity_id": "E085",
+      "canonical_name": "迈瑞医疗国际股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "迈瑞医疗",
+        "迈瑞",
+        "Mindray"
+      ],
+      "former_names": [
+        "深圳迈瑞生物医疗电子股份有限公司"
+      ],
+      "description": "中国最大的医疗器械制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "医疗器械",
+        "监护仪",
+        "超声",
+        "体外诊断"
+      ]
+    },
+    {
+      "entity_id": "E086",
+      "canonical_name": "无锡药明康德新药开发股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "药明康德",
+        "WuXi AppTec"
+      ],
+      "former_names": [
+        "无锡药明康德新药开发有限公司"
+      ],
+      "description": "全球领先的药物研发外包服务公司。",
+      "parent_ids": [],
+      "keywords": [
+        "CRO",
+        "药物研发",
+        "化学合成",
+        "生物制药"
+      ]
+    },
+    {
+      "entity_id": "E087",
+      "canonical_name": "恒瑞医药股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "恒瑞医药",
+        "恒瑞",
+        "Hengrui"
+      ],
+      "former_names": [
+        "连云港恒瑞医药有限公司"
+      ],
+      "description": "中国最大的创新药研发和生产企业。",
+      "parent_ids": [],
+      "keywords": [
+        "创新药",
+        "抗肿瘤",
+        "麻醉",
+        "造影剂"
+      ]
+    },
+    {
+      "entity_id": "E088",
+      "canonical_name": "云南白药集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "云南白药",
+        "Yunnan Baiyao"
+      ],
+      "former_names": [
+        "云南白药厂"
+      ],
+      "description": "中国知名中药企业，以白药系列产品闻名。",
+      "parent_ids": [],
+      "keywords": [
+        "中药",
+        "白药",
+        "牙膏",
+        "创可贴"
+      ]
+    },
+    {
+      "entity_id": "E089",
+      "canonical_name": "北京同仁堂（集团）有限责任公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "同仁堂",
+        "Tongrentang"
+      ],
+      "former_names": [
+        "同仁堂药室"
+      ],
+      "description": "中国历史最悠久的中药企业，始创于1669年。",
+      "parent_ids": [],
+      "keywords": [
+        "中药",
+        "老字号",
+        "安宫牛黄丸",
+        "牛黄清心丸"
+      ]
+    },
+    {
+      "entity_id": "E090",
+      "canonical_name": "爱尔眼科医院集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "爱尔眼科",
+        "爱尔",
+        "Aier"
+      ],
+      "former_names": [
+        "长沙爱尔眼科医院"
+      ],
+      "description": "中国最大的连锁眼科医疗机构。",
+      "parent_ids": [],
+      "keywords": [
+        "眼科",
+        "医院",
+        "近视手术",
+        "白内障"
+      ]
+    },
+    {
+      "entity_id": "E091",
+      "canonical_name": "智飞生物制品股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "智飞生物",
+        "智飞",
+        "Zhifei"
+      ],
+      "former_names": [
+        "重庆智飞生物制品有限公司"
+      ],
+      "description": "中国领先的疫苗研发和生产企业。",
+      "parent_ids": [],
+      "keywords": [
+        "疫苗",
+        "HPV",
+        "结核",
+        "生物制药"
+      ]
+    },
+    {
+      "entity_id": "E092",
+      "canonical_name": "联影医疗技术集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "联影医疗",
+        "联影",
+        "United Imaging"
+      ],
+      "former_names": [
+        "上海联影医疗科技有限公司"
+      ],
+      "description": "中国领先的高端医疗影像设备制造商。",
+      "parent_ids": [],
+      "keywords": [
+        "医疗影像",
+        "CT",
+        "MRI",
+        "PET-CT",
+        "放疗"
+      ]
+    },
+    {
+      "entity_id": "E093",
+      "canonical_name": "百济神州有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "百济神州",
+        "BeiGene"
+      ],
+      "former_names": [
+        "百济神州（北京）生物科技有限公司"
+      ],
+      "description": "中国领先的创新生物制药企业，专注于抗肿瘤药物研发。",
+      "parent_ids": [],
+      "keywords": [
+        "创新药",
+        "抗肿瘤",
+        "生物药",
+        "BTK抑制剂"
+      ]
+    },
+    {
+      "entity_id": "E094",
+      "canonical_name": "华大基因股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "华大基因",
+        "华大",
+        "BGI"
+      ],
+      "former_names": [
+        "北京华大基因研究中心"
+      ],
+      "description": "全球领先的基因组学研究和应用机构。",
+      "parent_ids": [],
+      "keywords": [
+        "基因测序",
+        "生物信息",
+        "精准医疗",
+        "遗传病"
+      ]
+    },
+    {
+      "entity_id": "E095",
+      "canonical_name": "石药集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "石药集团",
+        "石药",
+        "CSPC"
+      ],
+      "former_names": [
+        "石家庄制药集团有限公司"
+      ],
+      "description": "中国大型综合性医药企业。",
+      "parent_ids": [],
+      "keywords": [
+        "医药",
+        "抗生素",
+        "抗肿瘤",
+        "创新药"
+      ]
+    },
+    {
+      "entity_id": "E096",
+      "canonical_name": "贵州茅台酒股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "贵州茅台",
+        "茅台",
+        "Moutai"
+      ],
+      "former_names": [
+        "茅台酒厂"
+      ],
+      "description": "中国最著名的高端白酒企业。",
+      "parent_ids": [],
+      "keywords": [
+        "白酒",
+        "酱香",
+        "飞天茅台",
+        "高粱",
+        "赤水河"
+      ]
+    },
+    {
+      "entity_id": "E097",
+      "canonical_name": "五粮液集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "五粮液",
+        "Wuliangye"
+      ],
+      "former_names": [
+        "宜宾五粮液酒厂"
+      ],
+      "description": "中国著名的高端白酒企业，浓香型白酒的代表。",
+      "parent_ids": [],
+      "keywords": [
+        "白酒",
+        "浓香",
+        "宜宾",
+        "普五"
+      ]
+    },
+    {
+      "entity_id": "E098",
+      "canonical_name": "伊利实业集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "伊利集团",
+        "伊利",
+        "Yili"
+      ],
+      "former_names": [
+        "呼和浩特市回民区合作奶牛场"
+      ],
+      "description": "中国最大的乳制品企业。",
+      "parent_ids": [],
+      "keywords": [
+        "乳业",
+        "牛奶",
+        "酸奶",
+        "奶粉",
+        "冷饮"
+      ]
+    },
+    {
+      "entity_id": "E099",
+      "canonical_name": "蒙牛乳业（集团）股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "蒙牛乳业",
+        "蒙牛",
+        "Mengniu"
+      ],
+      "former_names": [
+        "内蒙古蒙牛乳业股份有限公司"
+      ],
+      "description": "中国第二大乳制品企业。",
+      "parent_ids": [],
+      "keywords": [
+        "乳业",
+        "牛奶",
+        "酸奶",
+        "奶粉"
+      ]
+    },
+    {
+      "entity_id": "E100",
+      "canonical_name": "农夫山泉股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "农夫山泉",
+        "Nongfu Spring"
+      ],
+      "former_names": [
+        "农夫山泉股份有限公司"
+      ],
+      "description": "中国最大的瓶装水企业。",
+      "parent_ids": [],
+      "keywords": [
+        "瓶装水",
+        "饮料",
+        "果汁",
+        "茶饮料",
+        "矿泉水"
+      ]
+    },
+    {
+      "entity_id": "E101",
+      "canonical_name": "海底捞国际控股有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "海底捞",
+        "Haidilao"
+      ],
+      "former_names": [
+        "海底捞餐饮股份有限公司"
+      ],
+      "description": "中国最大的连锁火锅餐饮企业。",
+      "parent_ids": [],
+      "keywords": [
+        "火锅",
+        "餐饮",
+        "连锁",
+        "服务"
+      ]
+    },
+    {
+      "entity_id": "E102",
+      "canonical_name": "青岛啤酒股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "青岛啤酒",
+        "青啤",
+        "Tsingtao"
+      ],
+      "former_names": [
+        "青岛啤酒厂"
+      ],
+      "description": "中国历史最悠久的啤酒酿造企业。",
+      "parent_ids": [],
+      "keywords": [
+        "啤酒",
+        "青岛",
+        "纯生",
+        "黑啤"
+      ]
+    },
+    {
+      "entity_id": "E103",
+      "canonical_name": "泸州老窖股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "泸州老窖",
+        "Luzhou Laojiao"
+      ],
+      "former_names": [
+        "泸州老窖酒厂"
+      ],
+      "description": "中国著名白酒企业，浓香型白酒的鼻祖。",
+      "parent_ids": [],
+      "keywords": [
+        "白酒",
+        "浓香",
+        "国窖1573",
+        "泸州"
+      ]
+    },
+    {
+      "entity_id": "E104",
+      "canonical_name": "中国移动通信集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国移动",
+        "移动",
+        "China Mobile"
+      ],
+      "former_names": [
+        "中国电信（香港）有限公司"
+      ],
+      "description": "中国最大的电信运营商。",
+      "parent_ids": [],
+      "keywords": [
+        "通信",
+        "5G",
+        "宽带",
+        "物联网",
+        "政企"
+      ]
+    },
+    {
+      "entity_id": "E105",
+      "canonical_name": "中国电信集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国电信",
+        "电信",
+        "China Telecom"
+      ],
+      "former_names": [
+        "中国电信集团公司"
+      ],
+      "description": "中国三大电信运营商之一。",
+      "parent_ids": [],
+      "keywords": [
+        "通信",
+        "5G",
+        "宽带",
+        "云计算",
+        "天翼云"
+      ]
+    },
+    {
+      "entity_id": "E106",
+      "canonical_name": "中国联合网络通信集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国联通",
+        "联通",
+        "China Unicom"
+      ],
+      "former_names": [
+        "中国联合通信有限公司"
+      ],
+      "description": "中国三大电信运营商之一。",
+      "parent_ids": [],
+      "keywords": [
+        "通信",
+        "5G",
+        "混改",
+        "产业互联网"
+      ]
+    },
+    {
+      "entity_id": "E107",
+      "canonical_name": "中国铁塔股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国铁塔",
+        "铁塔",
+        "China Tower"
+      ],
+      "former_names": [
+        "中国通信设施服务股份有限公司"
+      ],
+      "description": "全球最大的通信铁塔基础设施服务提供商。",
+      "parent_ids": [],
+      "keywords": [
+        "铁塔",
+        "基站",
+        "共享",
+        "5G",
+        "基础设施"
+      ]
+    },
+    {
+      "entity_id": "E108",
+      "canonical_name": "中国国家铁路集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国铁路",
+        "国铁",
+        "CR"
+      ],
+      "former_names": [
+        "中国铁路总公司"
+      ],
+      "description": "中国铁路的运营管理者。",
+      "parent_ids": [],
+      "keywords": [
+        "铁路",
+        "高铁",
+        "客运",
+        "货运",
+        "调度"
+      ]
+    },
+    {
+      "entity_id": "E109",
+      "canonical_name": "中远海运集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中远海运",
+        "COSCO Shipping"
+      ],
+      "former_names": [
+        "中国远洋运输（集团）总公司"
+      ],
+      "description": "全球最大的航运企业之一。",
+      "parent_ids": [],
+      "keywords": [
+        "航运",
+        "集装箱",
+        "港口",
+        "物流",
+        "海运"
+      ]
+    },
+    {
+      "entity_id": "E110",
+      "canonical_name": "中国邮政集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国邮政",
+        "邮政",
+        "China Post"
+      ],
+      "former_names": [
+        "邮电部邮政总局"
+      ],
+      "description": "中国最大的邮政和快递物流企业之一。",
+      "parent_ids": [],
+      "keywords": [
+        "邮政",
+        "快递",
+        "物流",
+        "储蓄",
+        "EMS"
+      ]
+    },
+    {
+      "entity_id": "E111",
+      "canonical_name": "顺丰控股股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "顺丰",
+        "SF Express",
+        "顺丰速运"
+      ],
+      "former_names": [
+        "顺丰速运（集团）有限公司"
+      ],
+      "description": "中国最大的民营快递物流企业。",
+      "parent_ids": [],
+      "keywords": [
+        "快递",
+        "物流",
+        "供应链",
+        "冷链",
+        "航空货运"
+      ]
+    },
+    {
+      "entity_id": "E112",
+      "canonical_name": "中通快递（开曼）有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中通快递",
+        "中通",
+        "ZTO"
+      ],
+      "former_names": [
+        "中通快递股份有限公司"
+      ],
+      "description": "中国市场份额最大的快递企业。",
+      "parent_ids": [],
+      "keywords": [
+        "快递",
+        "物流",
+        "电商包裹"
+      ]
+    },
+    {
+      "entity_id": "E113",
+      "canonical_name": "京东物流股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "京东物流",
+        "JDL"
+      ],
+      "former_names": [
+        "京东物流集团"
+      ],
+      "description": "中国领先的技术驱动型供应链解决方案和物流服务商。",
+      "parent_ids": [],
+      "keywords": [
+        "物流",
+        "供应链",
+        "仓储",
+        "配送",
+        "一体化"
+      ]
+    },
+    {
+      "entity_id": "E114",
+      "canonical_name": "上海国际港务（集团）股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "上港集团",
+        "上港",
+        "SIPG"
+      ],
+      "former_names": [
+        "上海港务局"
+      ],
+      "description": "全球最大的集装箱港口运营商。",
+      "parent_ids": [],
+      "keywords": [
+        "港口",
+        "集装箱",
+        "洋山港",
+        "航运"
+      ]
+    },
+    {
+      "entity_id": "E115",
+      "canonical_name": "招商局集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "招商局",
+        "China Merchants"
+      ],
+      "former_names": [
+        "轮船招商局"
+      ],
+      "description": "中国历史最悠久的国有企业（1872年）。",
+      "parent_ids": [],
+      "keywords": [
+        "港口",
+        "航运",
+        "金融",
+        "地产",
+        "综合"
+      ]
+    },
+    {
+      "entity_id": "E116",
+      "canonical_name": "中国宝武钢铁集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国宝武",
+        "宝武",
+        "Baowu"
+      ],
+      "former_names": [
+        "宝钢集团有限公司"
+      ],
+      "description": "全球最大的钢铁企业。",
+      "parent_ids": [],
+      "keywords": [
+        "钢铁",
+        "铁矿石",
+        "不锈钢",
+        "碳钢"
+      ]
+    },
+    {
+      "entity_id": "E117",
+      "canonical_name": "鞍钢集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "鞍钢集团",
+        "鞍钢",
+        "Ansteel"
+      ],
+      "former_names": [
+        "鞍山钢铁公司"
+      ],
+      "description": "中国大型钢铁企业。",
+      "parent_ids": [],
+      "keywords": [
+        "钢铁",
+        "铁矿石",
+        "汽车板",
+        "造船板"
+      ]
+    },
+    {
+      "entity_id": "E118",
+      "canonical_name": "中国铝业集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "中国铝业",
+        "中铝",
+        "Chalco"
+      ],
+      "former_names": [
+        "中国铝业公司"
+      ],
+      "description": "全球最大的有色金属企业之一。",
+      "parent_ids": [],
+      "keywords": [
+        "铝",
+        "铜",
+        "稀土",
+        "有色金属",
+        "矿业"
+      ]
+    },
+    {
+      "entity_id": "E119",
+      "canonical_name": "江西铜业集团有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "江西铜业",
+        "江铜",
+        "JCC"
+      ],
+      "former_names": [
+        "江西铜业公司"
+      ],
+      "description": "中国最大的铜生产企业。",
+      "parent_ids": [],
+      "keywords": [
+        "铜",
+        "黄金",
+        "白银",
+        "硫酸",
+        "有色金属"
+      ]
+    },
+    {
+      "entity_id": "E120",
+      "canonical_name": "紫金矿业集团股份有限公司",
+      "entity_type": "ORG",
+      "aliases": [
+        "紫金矿业",
+        "紫金",
+        "Zijin"
+      ],
+      "former_names": [
+        "上杭县矿产公司"
+      ],
+      "description": "中国最大的黄金和铜生产商之一。",
+      "parent_ids": [],
+      "keywords": [
+        "黄金",
+        "铜",
+        "锂",
+        "矿业",
+        "海外"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from app.models.enums import EntityType
 
 
@@ -19,3 +19,21 @@ class KnowledgeBase(BaseModel):
     kb_version: str
     description: str = ""
     entity_count: int = 0
+
+
+class KBPackage(BaseModel):
+    """一步导入：知识库元信息 + 实体列表。"""
+    kb_id: str
+    kb_version: str
+    description: str = ""
+    entities: list[Entity] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _check_unique_ids(self) -> "KBPackage":
+        """同批次 entity_id 不可重复。"""
+        seen: set[str] = set()
+        for e in self.entities:
+            if e.entity_id in seen:
+                raise ValueError(f"DUPLICATE_ENTITY_ID:{e.entity_id}")
+            seen.add(e.entity_id)
+        return self

@@ -17,7 +17,10 @@ dependencies = [
   "pydantic>=2.7,<2.11",
   "pydantic-settings>=2.3,<3.0",
   "PyYAML>=6.0,<7.0",
-  "aiofiles>=23.0,<25.0"
+  "aiofiles>=23.0,<25.0",
+  "sentence-transformers>=3.0,<4.0",
+  "faiss-cpu>=1.8,<2.0",
+  "numpy>=1.26,<3.0"
 ]
 
 [project.optional-dependencies]

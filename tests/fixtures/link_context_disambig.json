@@ -1,0 +1,29 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-link_context_disambig",
+  "text": {
+    "content": "中国银行在跨境金融和贸易融资领域积累了丰富经验，其国际化程度在境内银行中首屈一指。",
+    "language": "zh"
+  },
+  "mentions": [
+    {
+      "mention_id": "m1",
+      "surface_form": "中国银行",
+      "start_offset": 0,
+      "end_offset": 4
+    }
+  ],
+  "knowledge_base": {
+    "kb_id": "cn-enterprises-v1",
+    "kb_version": "v1"
+  },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

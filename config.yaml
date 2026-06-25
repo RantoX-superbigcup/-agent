@@ -19,3 +19,9 @@ coreference:
 
 storage:
   kb_dir: "data/knowledge_bases"
+
+embedding:
+  model_name: "data/models/BAAI/bge-small-zh-v1___5"
+  device: "cuda"
+  index_dir: "data/vector_index"
+  top_k_retrieve: 20

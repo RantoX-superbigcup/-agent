@@ -1,0 +1,41 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-link_coref",
+  "text": {
+    "content": "宁德时代宣布在匈牙利建设新电池工厂。该公司表示，此举将提升其欧洲产能。宁德时代董事长对项目的顺利推进充满信心。",
+    "language": "zh"
+  },
+  "mentions": [
+    {
+      "mention_id": "m1",
+      "surface_form": "宁德时代",
+      "start_offset": 0,
+      "end_offset": 4
+    },
+    {
+      "mention_id": "m2",
+      "surface_form": "该公司",
+      "start_offset": 17,
+      "end_offset": 20
+    },
+    {
+      "mention_id": "m3",
+      "surface_form": "宁德时代",
+      "start_offset": 31,
+      "end_offset": 35
+    }
+  ],
+  "knowledge_base": {
+    "kb_id": "cn-enterprises-v1",
+    "kb_version": "v1"
+  },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

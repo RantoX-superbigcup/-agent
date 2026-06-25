@@ -1,18 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from app.models.entity import Entity
+from app.models.entity import KBPackage
 
 router = APIRouter(prefix="/api/v1/knowledge-bases", tags=["knowledge-bases"])
-
-
-class CreateKBRequest(BaseModel):
-    kb_id: str
-    kb_version: str
-    description: str = ""
-
-
-class ImportEntitiesRequest(BaseModel):
-    entities: list[Entity]
 
 
 def _svc():
@@ -21,22 +10,20 @@ def _svc():
 
 
 @router.post("", status_code=201)
-def create_kb(body: CreateKBRequest) -> dict:
+def import_kb(body: KBPackage) -> dict:
+    """导入知识库（含实体）。kb_id 已存在时覆盖更新。"""
     svc = _svc()
-    if svc.exists(body.kb_id):
-        raise HTTPException(status_code=409, detail=f"KB {body.kb_id} already exists")
-    kb = svc.create(body.kb_id, body.kb_version, body.description)
-    return {"kb_id": kb.kb_id, "kb_version": kb.kb_version, "entity_count": 0, "status": "created"}
-
-
-@router.post("/{kb_id}/entities")
-def import_entities(kb_id: str, body: ImportEntitiesRequest) -> dict:
-    svc = _svc()
-    if not svc.exists(kb_id):
-        raise HTTPException(status_code=404, detail=f"KB {kb_id} not found")
-    kb = svc.get(kb_id)
-    count = svc.import_entities(kb_id, body.entities)
-    return {"kb_id": kb_id, "kb_version": kb.kb_version if kb else "", "imported_count": count, "status": "success"}
+    existed = svc.exists(body.kb_id)
+    try:
+        kb = svc.import_full(body.kb_id, body.kb_version, body.description, body.entities)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {
+        "kb_id": kb.kb_id,
+        "kb_version": kb.kb_version,
+        "entity_count": len(body.entities),
+        "status": "overwritten" if existed else "created",
+    }
 
 
 @router.get("")

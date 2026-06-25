@@ -1,0 +1,24 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-semantic",
+  "text": {
+    "content": "微信和QQ的母公司今日发布了最新财报。抖音和头条的开发方正在加速海外市场扩张。淘宝和天猫背后的电商巨头也在布局AI大模型。国内最大的搜索引擎公司宣布自动驾驶业务取得突破。",
+    "language": "zh"
+  },
+  "mentions": [
+    { "mention_id": "m1", "surface_form": "微信和QQ的母公司", "start_offset": 0, "end_offset": 9 },
+    { "mention_id": "m2", "surface_form": "抖音和头条的开发方", "start_offset": 16, "end_offset": 25 },
+    { "mention_id": "m3", "surface_form": "淘宝和天猫背后的电商巨头", "start_offset": 32, "end_offset": 44 },
+    { "mention_id": "m4", "surface_form": "国内最大的搜索引擎公司", "start_offset": 49, "end_offset": 59 }
+  ],
+  "knowledge_base": { "kb_id": "cn-enterprises-v1", "kb_version": "v1" },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}

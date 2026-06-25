@@ -21,3 +21,6 @@ class KBService:
 
     def import_entities(self, kb_id: str, entities: list[Entity]) -> int:
         return self.store.import_entities(kb_id, entities)
+
+    def import_full(self, kb_id: str, kb_version: str, description: str, entities: list[Entity]) -> KnowledgeBase:
+        return self.store.import_full(kb_id, kb_version, description, entities)

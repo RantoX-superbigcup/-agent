@@ -1,0 +1,35 @@
+{
+  "schema_version": "v1",
+  "request_id": "test-link_multi_sector",
+  "text": {
+    "content": "招商银行和中国人寿今日签署战略合作协议。双方将在保险代销、资产管理、养老金融等领域开展深入合作。",
+    "language": "zh"
+  },
+  "mentions": [
+    {
+      "mention_id": "m1",
+      "surface_form": "招商银行",
+      "start_offset": 0,
+      "end_offset": 4
+    },
+    {
+      "mention_id": "m2",
+      "surface_form": "中国人寿",
+      "start_offset": 5,
+      "end_offset": 9
+    }
+  ],
+  "knowledge_base": {
+    "kb_id": "cn-enterprises-v1",
+    "kb_version": "v1"
+  },
+  "options": {
+    "top_k": 5,
+    "nil_threshold": 0.6,
+    "enable_nil": true,
+    "enable_coreference": true,
+    "return_candidates": true,
+    "return_evidence": true,
+    "linker_version": "v1"
+  }
+}
