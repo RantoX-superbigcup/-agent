@@ -548,9 +548,10 @@ async function sendAgentMessage() {
     if (data.link_request) {
       document.getElementById('lk-json').value = JSON.stringify(data.link_request, null, 2);
     } else if (data.intent !== 'link') {
-      const linkBox = document.getElementById('r-link');
-      linkBox.className = 'result-box ok';
-      linkBox.textContent = '本轮是普通对话或配置操作，没有生成 LinkRequest，也没有提交实体链接 workflow。';
+      const linkBox = document.getElementById('lk-result');
+      if (linkBox) {
+        linkBox.innerHTML = '<div class="result-box ok">本轮是普通对话或配置操作，没有生成 LinkRequest，也没有提交实体链接 workflow。</div>';
+      }
     }
     if (data.link_response) {
       renderLinkResult({ok: true, data: data.link_response});
