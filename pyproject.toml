@@ -20,7 +20,9 @@ dependencies = [
   "aiofiles>=23.0,<25.0",
   "sentence-transformers>=3.0,<4.0",
   "faiss-cpu>=1.8,<2.0",
-  "numpy>=1.26,<3.0"
+  "numpy>=1.26,<3.0",
+  "pypdf>=4.0,<6.0",
+  "python-multipart>=0.0.9,<0.1"
 ]
 
 [project.optional-dependencies]

@@ -29,14 +29,14 @@ class KBStore:
 
     def create(self, kb_id: str, kb_version: str, description: str) -> KnowledgeBase:
         kb = KnowledgeBase(kb_id=kb_id, kb_version=kb_version, description=description)
-        self._meta_path(kb_id).write_text(kb.model_dump_json(), encoding="utf-8")
+        self._write_meta(kb)
         self._entities_path(kb_id).write_text("[]", encoding="utf-8")
         return kb
 
     def import_full(self, kb_id: str, kb_version: str, description: str, entities: list[Entity]) -> KnowledgeBase:
         """一步导入：同时写入元信息和实体，幂等覆盖。"""
         kb = KnowledgeBase(kb_id=kb_id, kb_version=kb_version, description=description, entity_count=len(entities))
-        self._meta_path(kb_id).write_text(kb.model_dump_json(exclude={"entity_count"}), encoding="utf-8")
+        self._write_meta(kb)
         self._entities_path(kb_id).write_text(
             json.dumps([e.model_dump() for e in entities], ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -52,7 +52,12 @@ class KBStore:
         if not path.exists():
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
-        data["entity_count"] = len(self.load_entities(kb_id))
+        if "entity_count" not in data:
+            data["entity_count"] = self._count_entities_fast(kb_id)
+            try:
+                self._write_meta(KnowledgeBase(**data))
+            except OSError as exc:
+                logger.warning("Failed to persist entity_count for kb=%s: %s", kb_id, exc)
         return KnowledgeBase(**data)
 
     def list_all(self) -> list[KnowledgeBase]:
@@ -76,11 +81,39 @@ class KBStore:
             json.dumps([e.model_dump() for e in entities], ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
+        meta_data = self._read_meta_data(kb_id)
+        meta = KnowledgeBase(
+            kb_id=kb_id,
+            kb_version=meta_data.get("kb_version", "v1"),
+            description=meta_data.get("description", ""),
+            entity_count=len(entities),
+        )
+        self._write_meta(meta.model_copy(update={"entity_count": len(entities)}))
         self._invalidate_index(kb_id)
         if self.embedder and self.index_dir and entities:
             self._rebuild_index(kb_id, entities)
         logger.info("知识库 '%s' 导入完成: %d 个实体", kb_id, len(entities))
         return len(entities)
+
+    def _write_meta(self, kb: KnowledgeBase) -> None:
+        self._meta_path(kb.kb_id).write_text(kb.model_dump_json(), encoding="utf-8")
+
+    def _read_meta_data(self, kb_id: str) -> dict:
+        path = self._meta_path(kb_id)
+        if not path.exists():
+            return {}
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def _count_entities_fast(self, kb_id: str) -> int:
+        path = self._entities_path(kb_id)
+        if not path.exists():
+            return 0
+        marker = b'"entity_id"'
+        count = 0
+        with path.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+                count += chunk.count(marker)
+        return count
 
     def _invalidate_index(self, kb_id: str) -> None:
         if not self.index_dir:

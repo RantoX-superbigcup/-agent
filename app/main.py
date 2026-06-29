@@ -16,7 +16,7 @@ logging.basicConfig(
 )
 
 _ROOT = Path(__file__).parent.parent
-_INDEX = (_ROOT / "static" / "index.html").read_text(encoding="utf-8")
+_INDEX_PATH = _ROOT / "static" / "index.html"
 
 app = FastAPI(title="Entity Link Agent", version="v1")
 app.add_exception_handler(Exception, global_error_handler)
@@ -26,7 +26,10 @@ app.include_router(api_router)
 
 @app.get("/", include_in_schema=False)
 def index():
-    return HTMLResponse(_INDEX)
+    return HTMLResponse(
+        _INDEX_PATH.read_text(encoding="utf-8"),
+        media_type="text/html; charset=utf-8",
+    )
 
 
 app.mount("/static", StaticFiles(directory=str(_ROOT / "static")), name="static")

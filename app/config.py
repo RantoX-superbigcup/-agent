@@ -10,7 +10,13 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_log_level: str = "info"
     kb_dir: str = "data/knowledge_bases"
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = "https://api.deepseek.com"
+    deepseek_model: str = "deepseek-chat"
+    llm_api_key: str = ""
+    llm_base_url: str = ""
+    llm_model: str = ""
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 class AppConfig:
@@ -29,6 +35,9 @@ class AppConfig:
         self.embedding_device: str = emb.get("device", "cuda")
         self.index_dir: Path = Path(emb.get("index_dir", "data/vector_index"))
         self.top_k_retrieve: int = emb.get("top_k_retrieve", 20)
+        self.llm_api_key: str = settings.llm_api_key or settings.deepseek_api_key
+        self.llm_base_url: str = settings.llm_base_url or settings.deepseek_base_url
+        self.llm_model: str = settings.llm_model or settings.deepseek_model
 
 
 @lru_cache(maxsize=1)

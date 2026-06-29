@@ -1,63 +1,66 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Entity Link Agent</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f5f5f5;height:100vh;display:flex;flex-direction:column}
-header{background:#fff;border-bottom:1px solid #e0e0e0;padding:0 24px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0}
-header h1{font-size:15px;font-weight:600}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;background:#f0f0f0;color:#888}
-.tabs{display:flex;border-bottom:1px solid #e0e0e0;background:#fff;padding:0 24px;flex-shrink:0}
-.tab{padding:10px 16px;cursor:pointer;font-size:13px;color:#666;border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none}
-.tab.active{color:#0066cc;border-bottom-color:#0066cc;font-weight:500}
-.pane{flex:1;overflow:auto;padding:20px 24px;display:none}
-.pane.active{display:flex;gap:20px;align-items:flex-start}
-.panel{background:#fff;border:1px solid #e0e0e0;border-radius:6px;padding:16px;flex:1;min-width:0}
-.panel h2{font-size:13px;font-weight:600;color:#333;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between}
-label{display:block;font-size:12px;color:#555;margin:10px 0 4px}
-label:first-of-type{margin-top:0}
-input,textarea{width:100%;padding:7px 10px;border:1px solid #d0d0d0;border-radius:4px;font-size:13px;font-family:inherit;outline:none;color:#1a1a1a}
-input:focus,textarea:focus{border-color:#0066cc;box-shadow:0 0 0 2px rgba(0,102,204,.1)}
-textarea{resize:vertical;font-family:'Courier New',monospace;font-size:12px}
-button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:500;transition:background .15s}
-.btn-primary{background:#0066cc;color:#fff}
-.btn-primary:hover{background:#0055aa}
-.btn-primary:disabled{background:#aaa;cursor:not-allowed}
-.btn-sm{padding:4px 10px;font-size:12px;background:#f0f0f0;color:#333;border:1px solid #d0d0d0;border-radius:4px}
-.btn-sm:hover{background:#e0e0e0}
-.result-box{margin-top:10px;padding:10px;background:#f8f8f8;border:1px solid #e0e0e0;border-radius:4px;font-size:12px;font-family:'Courier New',monospace;white-space:pre-wrap;word-break:break-all;max-height:220px;overflow:auto}
-.result-box.ok{background:#f5fff8;border-color:#b0e0bc}
-.result-box.err{background:#fff5f5;border-color:#f5c0c0;color:#c00}
-.kb-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f8f8f8;border:1px solid #e8e8e8;border-radius:4px;margin-bottom:6px}
-.kb-name{font-weight:500;font-size:13px}
-.kb-meta{font-size:11px;color:#888;margin-top:2px}
-.mention-card{padding:10px;border:1px solid #e0e0e0;border-radius:4px;margin-bottom:8px}
-.mhead{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
-.status-badge{padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600}
-.linked{background:#e6f4ea;color:#1e7e34}
-.nil{background:#f0f0f0;color:#666}
-.ambiguous{background:#fff3cd;color:#856404}
-.error{background:#f8d7da;color:#721c24}
-.section-lbl{font-size:11px;color:#888;margin:6px 0 3px;text-transform:uppercase;letter-spacing:.5px}
-.tag{display:inline-block;padding:1px 6px;background:#e8f0fe;color:#1a56db;border-radius:3px;font-size:11px;margin-right:3px}
-.cand-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid #f5f5f5}
-.cand-row:last-child{border-bottom:none}
-.evid-row{font-size:11px;color:#555;padding:2px 0}
-.score-bar{display:inline-block;height:5px;background:#0066cc;border-radius:3px;margin-left:6px;vertical-align:middle}
-.empty{color:#aaa;font-size:12px;text-align:center;padding:24px}
-.coref-info{font-size:11px;color:#555;margin-bottom:4px}
-.summary-row{display:flex;gap:16px;margin-bottom:12px;font-size:13px}
-.chain-row{font-size:12px;padding:4px 0}
-.hint{font-size:11px;color:#999;margin-top:4px}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Microsoft YaHei","Segoe UI",sans-serif;background:#f4f6f8;color:#20242a;font-size:14px}
+header{height:56px;background:#fff;border-bottom:1px solid #dde3ea;display:flex;align-items:center;padding:0 24px;gap:12px}
+h1{font-size:18px;margin:0;font-weight:700}
+.badge{font-size:12px;border-radius:999px;background:#eef2f7;color:#607087;padding:4px 10px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #dde3ea;padding:0 24px}
+.tab{padding:13px 18px;cursor:pointer;border-bottom:3px solid transparent;color:#64748b}
+.tab.active{color:#0b63ce;border-bottom-color:#0b63ce;font-weight:700}
+.pane{display:none;padding:22px;gap:20px;align-items:flex-start}
+.pane.active{display:flex}
+.panel{background:#fff;border:1px solid #dde3ea;border-radius:10px;padding:18px;box-shadow:0 8px 24px rgba(15,23,42,.04)}
+.left{width:520px;flex:0 0 520px}
+.right{flex:1;min-width:0}
+h2{font-size:15px;margin:0 0 14px;border-bottom:1px solid #edf1f5;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+label{display:block;margin:12px 0 6px;font-size:12px;color:#526174;font-weight:600}
+input,textarea,select{width:100%;border:1px solid #cfd8e3;border-radius:7px;padding:9px 10px;font:inherit;background:#fff;color:#20242a}
+textarea{font-family:Consolas,"Courier New",monospace;font-size:12px;resize:vertical}
+button,.file-button{border:0;border-radius:7px;padding:9px 14px;background:#0b63ce;color:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+button:hover,.file-button:hover{background:#084f9f}
+button:disabled{background:#9aa6b2;cursor:not-allowed}
+.btn-light{background:#eef4ff;color:#0b63ce;border:1px solid #bfdbfe}
+.btn-light:hover{background:#dcebff}
+.row{display:flex;gap:8px;align-items:center}
+.hint{font-size:12px;color:#7b8794;line-height:1.6;margin-top:8px}
+.result-box{margin-top:12px;background:#f8fafc;border:1px solid #dde3ea;border-radius:8px;padding:12px;max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-family:Consolas,"Courier New",monospace;font-size:12px}
+.result-box.ok{background:#f0fff4;border-color:#9ae6b4}
+.result-box.err{background:#fff5f5;border-color:#feb2b2;color:#9b1c1c}
+.kb-item{display:flex;justify-content:space-between;gap:14px;align-items:center;border:1px solid #e5ebf1;border-radius:8px;padding:11px 12px;margin-bottom:8px;background:#fbfdff}
+.kb-name{font-weight:800}
+.kb-meta{font-size:12px;color:#7b8794;margin-top:3px}
+.empty{padding:28px;text-align:center;color:#9aa6b2;border:1px dashed #cfd8e3;border-radius:8px;background:#fbfdff}
+.hidden{display:none}
+.file-line{border:1px dashed #b9c7d6;border-radius:8px;background:#fbfdff;padding:12px;margin-top:8px}
+.file-name{font-size:12px;color:#526174;margin-left:8px}
+.summary{display:flex;gap:16px;margin-bottom:14px}
+.summary span{background:#f8fafc;border:1px solid #e5ebf1;border-radius:8px;padding:8px 10px}
+.card{border:1px solid #e5ebf1;border-radius:9px;margin-bottom:10px;padding:12px;background:#fff}
+.status{font-size:12px;border-radius:999px;padding:3px 8px;font-weight:800}
+.linked{background:#dcfce7;color:#166534}.nil{background:#f1f5f9;color:#475569}.ambiguous{background:#fef3c7;color:#92400e}.error{background:#fee2e2;color:#991b1b}
+.tag{display:inline-block;background:#e8f1ff;color:#0b63ce;border-radius:4px;padding:2px 6px;font-size:11px;margin:2px 4px 2px 0}
+.small{font-size:12px;color:#64748b}
+.chat-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.chat-box{height:230px;overflow:auto;background:linear-gradient(180deg,#f8fbff,#fff);border:1px solid #dde8f4;border-radius:10px;padding:12px}
+.chat-msg{max-width:92%;padding:9px 11px;border-radius:10px;margin-bottom:9px;line-height:1.55;white-space:pre-wrap}
+.chat-user{margin-left:auto;background:#0b63ce;color:#fff}
+.chat-agent{background:#eef6ff;color:#1f2a37;border:1px solid #d5e8ff}
+.chat-error{background:#fff5f5;color:#9b1c1c;border:1px solid #feb2b2}
+.agent-upload{border:1px dashed #b9c7d6;border-radius:10px;background:#fbfdff;padding:12px;margin-top:12px}
+.advanced-json{margin-top:18px}
+@media(max-width:900px){.pane.active{flex-direction:column}.left{width:100%;flex:auto}}
 </style>
 </head>
 <body>
 <header>
   <h1>Entity Link Agent</h1>
-  <span class="badge">v1</span>
+  <span class="badge">课题10</span>
   <span id="health" class="badge" style="margin-left:auto">检查中...</span>
 </header>
 
@@ -66,214 +69,565 @@ button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:no
   <div class="tab" onclick="switchTab('link')">实体链接</div>
 </div>
 
-<div id="pane-kb" class="pane active">
-  <div class="panel" style="max-width:420px;flex:0 0 420px">
-    <h2>导入知识库 <button class="btn-sm" onclick="fillPreset()">📋 填入示例</button></h2>
-    <label>知识库 ID</label><input id="kb-id" placeholder="energy-v1">
+<main id="pane-kb" class="pane active">
+  <section class="panel left">
+    <h2>从本地文件导入 <button class="btn-light" onclick="resetUploadForm()">清空</button></h2>
+    <div class="file-line">
+      <input id="upload-file" class="hidden" type="file" onchange="onFileSelected()">
+      <label for="upload-file" class="file-button">选择文件</label>
+      <span id="upload-file-name" class="file-name">尚未选择文件</span>
+    </div>
+
+    <label>来源类型</label>
+    <select id="upload-source">
+      <option value="auto">自动识别</option>
+      <option value="ccks_kb_data">CCKS kb_data</option>
+      <option value="kb_package">KBPackage JSON</option>
+      <option value="entities">实体数组 JSON/JSONL</option>
+      <option value="pdf">PDF</option>
+      <option value="text">文本/Markdown</option>
+    </select>
+
+    <label>导入后的知识库 ID（可选）</label>
+    <input id="upload-kb-id" placeholder="例如：ccks2019-v1；留空则按文件名生成">
+
+    <label>知识库版本</label>
+    <input id="upload-kb-version" value="v1">
+
+    <label style="display:flex;gap:8px;align-items:center;font-weight:500">
+      <input id="upload-use-llm" type="checkbox" style="width:auto"> PDF/文本使用大模型抽取实体
+    </label>
+    <div class="hint">结构化 JSON、JSONL、CCKS kb_data 可直接转换。PDF 或纯文本没有固定结构，建议配置大模型 API 后勾选大模型抽取。</div>
+    <br>
+    <button id="upload-btn" onclick="importUploadKB()">上传并导入知识库</button>
+    <div id="r-upload"></div>
+
+    <hr style="border:none;border-top:1px solid #edf1f5;margin:18px 0">
+
+    <h2>手动 JSON 导入 <button class="btn-light" onclick="fillPreset()">填入示例</button></h2>
+    <label>知识库 ID</label><input id="kb-id" placeholder="cn-enterprises-v1">
     <label>版本</label><input id="kb-ver" value="v1">
-    <label>描述</label><input id="kb-desc" placeholder="能源行业实体库">
-    <label>实体列表（JSON 数组，含 entity_id / canonical_name / entity_type / aliases / description / keywords）</label>
-    <textarea id="kb-entities" rows="12" placeholder='[{"entity_id":"E001","canonical_name":"...","entity_type":"ORG","aliases":["..."],"former_names":[],"description":"...","keywords":["..."]}]'></textarea>
-    <div class="hint">同名 kb_id 再次导入将覆盖已有数据</div>
+    <label>描述</label><input id="kb-desc" placeholder="知识库描述">
+    <label>实体列表 JSON 数组</label>
+    <textarea id="kb-entities" rows="8" placeholder='[{"entity_id":"E001","canonical_name":"...","entity_type":"ORG","aliases":[],"former_names":[],"description":"","keywords":[]}]'></textarea>
+    <div class="hint">同名 kb_id 再次导入会覆盖已有知识库。</div>
     <br>
-    <button class="btn-primary" onclick="importKB()">📦 导入知识库</button>
+    <button onclick="importKB()">导入 JSON 知识库</button>
     <div id="r-import"></div>
-  </div>
+  </section>
 
-  <div class="panel">
-    <h2>知识库列表 <button class="btn-sm" onclick="loadKBs()">↺ 刷新</button></h2>
+  <section class="panel right">
+    <h2>知识库列表 <button class="btn-light" onclick="loadKBs()">刷新</button></h2>
     <div id="kb-list"><div class="empty">暂无知识库</div></div>
-  </div>
-</div>
+  </section>
+</main>
 
-<div id="pane-link" class="pane">
-  <div class="panel" style="max-width:500px;flex:0 0 500px">
-    <h2>链接请求 <button class="btn-sm" onclick="fillLinkPreset()">📋 填入示例</button></h2>
-    <label>请求体（完整的 LinkRequest JSON）</label>
-    <textarea id="lk-json" rows="22" placeholder='{"schema_version":"v1","request_id":"req-001","text":{"content":"...","language":"zh"},"mentions":[{"mention_id":"m1","surface_form":"...","start_offset":0,"end_offset":6}],"knowledge_base":{"kb_id":"cn-enterprises-v1","kb_version":"v1"},"options":{"top_k":5,"nil_threshold":0.6,"enable_nil":true,"enable_coreference":true,"return_candidates":true,"return_evidence":true,"linker_version":"v1"}}'></textarea>
-    <div class="hint">直接粘贴接口文档中的 LinkRequest JSON，或从 tests/fixtures/ 加载</div>
+<main id="pane-link" class="pane">
+  <section class="panel left">
+    <h2>Agent 对话 <button class="btn-light" onclick="fillAgentExample()">填入示例</button></h2>
+    <div class="chat-toolbar">
+      <div>
+        <label>当前知识库</label>
+        <select id="agent-kb"></select>
+      </div>
+      <div>
+        <label>大模型</label>
+        <select id="agent-model">
+          <option value="auto">自动选择</option>
+          <option value="deepseek-chat">deepseek-chat</option>
+          <option value="deepseek-reasoner">deepseek-reasoner</option>
+          <option value="qwen-plus">qwen-plus</option>
+          <option value="qwen-max">qwen-max</option>
+          <option value="qwen-turbo">qwen-turbo</option>
+          <option value="moonshot-v1-8k">moonshot-v1-8k</option>
+          <option value="glm-4-flash">glm-4-flash</option>
+        </select>
+      </div>
+    </div>
+    <div id="agent-chat-log" class="chat-box">
+      <div class="chat-msg chat-agent">我是实体链接 Agent。你可以直接输入文本和实体，例如：文本：李导演的《断背山》很动人；实体：李导演，断背山。</div>
+    </div>
+    <label>自然语言输入</label>
+    <textarea id="agent-message" rows="4" placeholder="例如：李导演的《断背山》真是令人动人，其中实体是李导演和断背山"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="agent-send-btn" onclick="sendAgentMessage()">发送给 Agent</button>
+      <button class="btn-light" onclick="clearAgentChat()">清空对话</button>
+    </div>
+    <div class="hint">大模型会先判断是否为实体链接任务；只有同时包含原文和实体时才生成 LinkRequest JSON 并交给 LangGraph workflow 执行。</div>
+
+    <div class="agent-upload">
+      <label>在对话区上传知识库</label>
+      <div class="row">
+        <input id="agent-upload-file" class="hidden" type="file" onchange="onAgentFileSelected()">
+        <label for="agent-upload-file" class="file-button">选择知识库文件</label>
+        <span id="agent-upload-name" class="file-name">尚未选择文件</span>
+      </div>
+      <input id="agent-upload-kb-id" style="margin-top:8px" placeholder="可选：导入后的知识库 ID，例如 ccks2019-v1">
+      <label style="display:flex;gap:8px;align-items:center;font-weight:500">
+        <input id="agent-upload-use-llm" type="checkbox" style="width:auto"> PDF/文本使用大模型抽取实体
+      </label>
+      <button id="agent-upload-btn" onclick="uploadKBFromAgent()">上传并设为当前知识库</button>
+    </div>
+
+    <div class="advanced-json">
+      <h2>高级 JSON 调试 <button class="btn-light" onclick="fillLinkPreset()">填入示例</button></h2>
+    </div>
+    <label>完整 LinkRequest JSON</label>
+    <textarea id="lk-json" rows="14"></textarea>
+    <div class="hint">可以点击知识库列表中的“使用”，系统会自动填入 knowledge_base 字段。</div>
     <br>
-    <button class="btn-primary" id="lk-btn" onclick="runLink()">▶ 执行链接</button>
-    <div id="lk-err" style="color:#c00;font-size:12px;margin-top:6px;display:none"></div>
-  </div>
+    <button id="lk-btn" onclick="runLink()">执行链接</button>
+    <div id="lk-err" class="small" style="color:#b91c1c;margin-top:8px"></div>
+  </section>
 
-  <div class="panel">
+  <section class="panel right">
     <h2>链接结果</h2>
-    <div id="lk-result"><div class="empty">发送请求后结果展示在此</div></div>
-  </div>
-</div>
+    <div id="lk-result"><div class="empty">发送请求后，结果会显示在这里</div></div>
+  </section>
+</main>
 
 <script>
-// 自动检测：当前端口不是8000时，API请求指向后端
 const API_BASE = window.location.port === '8000' ? '' : 'http://localhost:8000';
+let knownKBs = [];
+let agentHistory = [];
 
-async function api(method, path, body) {
-  const r = await fetch(API_BASE + path, {
-    method,
-    headers: {'Content-Type': 'application/json'},
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  return { ok: r.ok, data: await r.json() };
+function defaultLinkOptions() {
+  return {
+    top_k: 5,
+    nil_threshold: 0.6,
+    enable_nil: true,
+    enable_coreference: true,
+    return_candidates: true,
+    return_evidence: true,
+    linker_version: 'v1',
+  };
 }
 
-function showResult(id, { ok, data }) {
+async function api(method, path, body) {
+  const resp = await fetch(API_BASE + path, {
+    method,
+    headers: {'Content-Type': 'application/json'},
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return {ok: resp.ok, data: await resp.json()};
+}
+
+function showResult(id, result) {
   const el = document.getElementById(id);
-  el.className = 'result-box ' + (ok ? 'ok' : 'err');
-  el.textContent = JSON.stringify(data, null, 2);
+  el.className = 'result-box ' + (result.ok ? 'ok' : 'err');
+  el.textContent = JSON.stringify(result.data, null, 2);
 }
 
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', ['kb','link'][i] === name));
+  document.querySelectorAll('.tab').forEach((t, index) => t.classList.toggle('active', ['kb','link'][index] === name));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-' + name).classList.add('active');
-  if (name === 'kb') loadKBs();
+  if (name === 'kb' || name === 'link') loadKBs();
 }
 
 async function checkHealth() {
   const el = document.getElementById('health');
   try {
-    const { ok } = await api('GET', '/health');
-    el.textContent = ok ? '服务正常' : '服务异常';
-    el.style.cssText = ok ? 'background:#e6f4ea;color:#1e7e34' : 'background:#fde8e8;color:#c00';
-  } catch { el.textContent = '连接失败'; el.style.cssText = 'background:#fde8e8;color:#c00'; }
+    const r = await api('GET', '/health');
+    el.textContent = r.ok ? '服务正常' : '服务异常';
+    el.style.cssText = r.ok ? 'margin-left:auto;background:#dcfce7;color:#166534' : 'margin-left:auto;background:#fee2e2;color:#991b1b';
+  } catch {
+    el.textContent = '连接失败';
+    el.style.cssText = 'margin-left:auto;background:#fee2e2;color:#991b1b';
+  }
+}
+
+function onFileSelected() {
+  const file = document.getElementById('upload-file').files[0];
+  document.getElementById('upload-file-name').textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : '尚未选择文件';
+}
+
+function resetUploadForm() {
+  document.getElementById('upload-file').value = '';
+  document.getElementById('upload-file-name').textContent = '尚未选择文件';
+  document.getElementById('upload-kb-id').value = '';
+  document.getElementById('upload-source').value = 'auto';
+  document.getElementById('upload-use-llm').checked = false;
+  document.getElementById('r-upload').innerHTML = '';
+}
+
+async function importUploadKB() {
+  const fileInput = document.getElementById('upload-file');
+  const file = fileInput.files[0];
+  const box = document.getElementById('r-upload');
+  if (!file) {
+    box.className = 'result-box err';
+    box.textContent = '请先点击“选择文件”，选择 JSON、JSONL、PDF、TXT 或 Markdown 文件。';
+    return;
+  }
+
+  const form = new FormData();
+  form.append('file', file);
+  form.append('source_type', document.getElementById('upload-source').value);
+  form.append('kb_id', document.getElementById('upload-kb-id').value.trim());
+  form.append('kb_version', document.getElementById('upload-kb-version').value.trim() || 'v1');
+  form.append('import_to_store', 'true');
+  form.append('include_entities', 'false');
+  form.append('preview_limit', '5');
+  form.append('use_llm', document.getElementById('upload-use-llm').checked ? 'true' : 'false');
+
+  const btn = document.getElementById('upload-btn');
+  btn.disabled = true;
+  btn.textContent = '正在上传并转换...';
+  try {
+    const resp = await fetch(API_BASE + '/api/v1/knowledge-bases/import-upload', {method: 'POST', body: form});
+    const data = await resp.json();
+    showResult('r-upload', {ok: resp.ok, data});
+    if (resp.ok) {
+      await loadKBs();
+      useKB(data.kb_id, data.kb_version);
+    }
+  } catch (err) {
+    showResult('r-upload', {ok: false, data: {message: String(err)}});
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '上传并导入知识库';
+  }
+}
+
+function onAgentFileSelected() {
+  const file = document.getElementById('agent-upload-file').files[0];
+  document.getElementById('agent-upload-name').textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : '尚未选择文件';
+}
+
+async function uploadKBFromAgent() {
+  const file = document.getElementById('agent-upload-file').files[0];
+  if (!file) {
+    appendChat('assistant', '请先选择一个知识库文件。支持 CCKS kb_data、JSON/JSONL、PDF、TXT、Markdown。', true);
+    return;
+  }
+
+  const form = new FormData();
+  form.append('file', file);
+  form.append('source_type', 'auto');
+  form.append('kb_id', document.getElementById('agent-upload-kb-id').value.trim());
+  form.append('kb_version', 'v1');
+  form.append('import_to_store', 'true');
+  form.append('include_entities', 'false');
+  form.append('preview_limit', '5');
+  form.append('use_llm', document.getElementById('agent-upload-use-llm').checked ? 'true' : 'false');
+
+  const btn = document.getElementById('agent-upload-btn');
+  btn.disabled = true;
+  btn.textContent = '正在上传...';
+  appendChat('user', `上传知识库文件：${file.name}`);
+  try {
+    const resp = await fetch(API_BASE + '/api/v1/knowledge-bases/import-upload', {method: 'POST', body: form});
+    const data = await resp.json();
+    if (!resp.ok) {
+      appendChat('assistant', `知识库上传失败：${JSON.stringify(data, null, 2)}`, true);
+      return;
+    }
+    await loadKBs();
+    setSelectedKB(data.kb_id, data.kb_version);
+    useKB(data.kb_id, data.kb_version);
+    appendChat('assistant', `知识库已导入并设为当前知识库：${data.kb_id}/${data.kb_version}，实体数 ${data.entity_count}。`);
+  } catch (err) {
+    appendChat('assistant', `知识库上传请求失败：${String(err)}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '上传并设为当前知识库';
+  }
 }
 
 function fillPreset() {
-  document.getElementById('kb-id').value = 'cn-enterprises-v1';
+  document.getElementById('kb-id').value = 'demo-enterprises-v1';
   document.getElementById('kb-ver').value = 'v1';
-  document.getElementById('kb-desc').value = '中国企业实体库（演示用精简版，完整120条见 tests/fixtures/cn_enterprises_kb.json）';
+  document.getElementById('kb-desc').value = '演示企业知识库';
   document.getElementById('kb-entities').value = JSON.stringify([
-    {"entity_id":"E001","canonical_name":"国家电网有限公司","entity_type":"ORG","aliases":["国家电网","国网","SGCC"],"former_names":["国家电力公司"],"description":"中国规模最大的公用事业企业，负责全国大部分地区的电力输送与销售。","parent_ids":[],"keywords":["特高压","输电","电网","国有企业","电力"]},
-    {"entity_id":"E016","canonical_name":"华为技术有限公司","entity_type":"ORG","aliases":["华为","Huawei"],"former_names":[],"description":"全球领先的ICT基础设施和智能终端提供商。","parent_ids":[],"keywords":["5G","通信设备","智能手机","芯片","云计算","鸿蒙"]},
-    {"entity_id":"E018","canonical_name":"腾讯控股有限公司","entity_type":"ORG","aliases":["腾讯","Tencent"],"former_names":["深圳市腾讯计算机系统有限公司"],"description":"中国最大的互联网综合服务提供商。","parent_ids":[],"keywords":["社交","游戏","微信","QQ","云服务"]},
-    {"entity_id":"E019","canonical_name":"阿里巴巴集团控股有限公司","entity_type":"ORG","aliases":["阿里巴巴","阿里","Alibaba"],"former_names":["阿里巴巴网络技术有限公司"],"description":"全球最大的零售商务公司。","parent_ids":[],"keywords":["电商","云计算","淘宝","天猫","支付宝"]},
-    {"entity_id":"E036","canonical_name":"中国工商银行股份有限公司","entity_type":"ORG","aliases":["工商银行","工行","ICBC"],"former_names":["中国工商银行"],"description":"中国最大的商业银行。","parent_ids":[],"keywords":["银行","金融","信贷","零售银行"]},
-    {"entity_id":"E042","canonical_name":"中国平安保险（集团）股份有限公司","entity_type":"ORG","aliases":["中国平安","平安","Ping An"],"former_names":["平安保险公司"],"description":"中国最大的综合金融服务集团。","parent_ids":[],"keywords":["保险","银行","金融科技","健康管理"]},
-    {"entity_id":"E014","canonical_name":"宁德时代新能源科技股份有限公司","entity_type":"ORG","aliases":["宁德时代","CATL"],"former_names":[],"description":"全球领先的动力电池及储能系统研发制造企业。","parent_ids":[],"keywords":["动力电池","锂电池","储能","三元锂"]},
-    {"entity_id":"E060","canonical_name":"长城汽车股份有限公司","entity_type":"ORG","aliases":["长城汽车","长城","GWM"],"former_names":["长城汽车制造厂"],"description":"中国最大的SUV和皮卡制造商。","parent_ids":[],"keywords":["SUV","皮卡","哈弗","坦克","新能源"]},
-    {"entity_id":"E096","canonical_name":"贵州茅台酒股份有限公司","entity_type":"ORG","aliases":["贵州茅台","茅台","Moutai"],"former_names":["茅台酒厂"],"description":"中国最著名的高端白酒企业。","parent_ids":[],"keywords":["白酒","酱香","飞天茅台"]},
-    {"entity_id":"E104","canonical_name":"中国移动通信集团有限公司","entity_type":"ORG","aliases":["中国移动","移动","China Mobile"],"former_names":["中国电信（香港）有限公司"],"description":"中国最大的电信运营商。","parent_ids":[],"keywords":["通信","5G","宽带","物联网"]}
+    {
+      entity_id: 'E001',
+      canonical_name: '国家电网有限公司',
+      entity_type: 'ORG',
+      aliases: ['国家电网', '国网', 'SGCC'],
+      former_names: ['国家电力公司'],
+      description: '中国大型电网企业，负责电力输送与销售。',
+      parent_ids: [],
+      keywords: ['电网', '输电', '电力', '国有企业']
+    },
+    {
+      entity_id: 'E002',
+      canonical_name: '华为技术有限公司',
+      entity_type: 'ORG',
+      aliases: ['华为', 'Huawei'],
+      former_names: [],
+      description: '全球 ICT 基础设施和智能终端提供商。',
+      parent_ids: [],
+      keywords: ['通信', '5G', '手机', '云计算']
+    }
   ], null, 2);
 }
 
 async function importKB() {
   const kbId = document.getElementById('kb-id').value.trim();
-  if (!kbId) { const el=document.getElementById('r-import'); el.className='result-box err'; el.textContent='知识库 ID 不能为空'; return; }
+  const box = document.getElementById('r-import');
+  if (!kbId) {
+    box.className = 'result-box err';
+    box.textContent = '知识库 ID 不能为空';
+    return;
+  }
   let entities;
-  try { entities = JSON.parse(document.getElementById('kb-entities').value); }
-  catch (e) { const el=document.getElementById('r-import'); el.className='result-box err'; el.textContent='JSON格式错误: '+e.message; return; }
-  if (!Array.isArray(entities) || entities.length === 0) { const el=document.getElementById('r-import'); el.className='result-box err'; el.textContent='实体列表不能为空'; return; }
-  const r = await api('POST', '/api/v1/knowledge-bases', {
+  try {
+    entities = JSON.parse(document.getElementById('kb-entities').value);
+  } catch (err) {
+    box.className = 'result-box err';
+    box.textContent = '实体列表 JSON 格式错误：' + err.message;
+    return;
+  }
+  const result = await api('POST', '/api/v1/knowledge-bases', {
     kb_id: kbId,
     kb_version: document.getElementById('kb-ver').value.trim() || 'v1',
     description: document.getElementById('kb-desc').value.trim(),
     entities,
   });
-  showResult('r-import', r);
-  if (r.ok) { loadKBs(); useKB(kbId, document.getElementById('kb-ver').value.trim() || 'v1'); }
+  showResult('r-import', result);
+  if (result.ok) {
+    await loadKBs();
+    useKB(kbId, document.getElementById('kb-ver').value.trim() || 'v1');
+  }
 }
 
 async function loadKBs() {
-  const { ok, data } = await api('GET', '/api/v1/knowledge-bases');
+  const result = await api('GET', '/api/v1/knowledge-bases');
   const el = document.getElementById('kb-list');
-  if (!ok || !data.knowledge_bases?.length) { el.innerHTML = '<div class="empty">暂无知识库，点击"填入示例"快速体验</div>'; return; }
-  el.innerHTML = data.knowledge_bases.map(kb => `
+  if (!result.ok || !result.data.knowledge_bases?.length) {
+    el.innerHTML = '<div class="empty">暂无知识库。可以先选择本地文件导入，或填入示例 JSON。</div>';
+    knownKBs = [];
+    populateAgentKBOptions([]);
+    return;
+  }
+  knownKBs = result.data.knowledge_bases;
+  populateAgentKBOptions(knownKBs);
+  el.innerHTML = result.data.knowledge_bases.map(kb => `
     <div class="kb-item">
       <div>
-        <div class="kb-name">${kb.kb_id}</div>
-        <div class="kb-meta">${kb.description||'无描述'} · ${kb.kb_version} · ${kb.entity_count} 个实体</div>
+        <div class="kb-name">${escapeHtml(kb.kb_id)}</div>
+        <div class="kb-meta">${escapeHtml(kb.kb_version)} · ${kb.entity_count} 个实体 · ${escapeHtml(kb.description || '无描述')}</div>
       </div>
-      <button class="btn-sm" onclick="useKB('${kb.kb_id}','${kb.kb_version}')">使用 →</button>
-    </div>`).join('');
+      <button class="btn-light" onclick="useKB('${escapeAttr(kb.kb_id)}','${escapeAttr(kb.kb_version)}')">使用</button>
+    </div>
+  `).join('');
 }
 
-function useKB(id, ver) {
-  const tmpl = JSON.stringify({
-    schema_version: "v1", request_id: "req-" + Date.now(),
-    text: { content: "", language: "zh" },
+function useKB(id, version) {
+  setSelectedKB(id, version);
+  document.getElementById('lk-json').value = JSON.stringify({
+    schema_version: 'v1',
+    request_id: 'req-' + Date.now(),
+    text: {content: '', language: 'zh'},
     mentions: [],
-    knowledge_base: { kb_id: id, kb_version: ver },
-    options: { top_k: 5, nil_threshold: 0.6, enable_nil: true, enable_coreference: true, return_candidates: true, return_evidence: true, linker_version: "v1" },
+    knowledge_base: {kb_id: id, kb_version: version},
+    options: defaultLinkOptions(),
   }, null, 2);
-  document.getElementById('lk-json').value = tmpl;
   switchTab('link');
 }
 
+function populateAgentKBOptions(kbs) {
+  const select = document.getElementById('agent-kb');
+  if (!select) return;
+  const previous = select.value;
+  if (!kbs.length) {
+    select.innerHTML = '<option value="">暂无知识库，请先上传</option>';
+    return;
+  }
+  select.innerHTML = kbs.map(kb => {
+    const value = `${escapeAttr(kb.kb_id)}|||${escapeAttr(kb.kb_version)}`;
+    return `<option value="${value}">${escapeHtml(kb.kb_id)} / ${escapeHtml(kb.kb_version)} (${kb.entity_count})</option>`;
+  }).join('');
+  if (previous && Array.from(select.options).some(opt => opt.value === previous)) {
+    select.value = previous;
+  }
+}
+
+function getSelectedKB() {
+  const value = document.getElementById('agent-kb')?.value || '';
+  if (!value) return null;
+  const [kb_id, kb_version] = value.split('|||');
+  return kb_id ? {kb_id, kb_version: kb_version || 'v1'} : null;
+}
+
+function setSelectedKB(id, version) {
+  const select = document.getElementById('agent-kb');
+  if (!select || !id) return;
+  const value = `${id}|||${version || 'v1'}`;
+  if (!Array.from(select.options).some(opt => opt.value === value)) {
+    select.add(new Option(`${id} / ${version || 'v1'}`, value));
+  }
+  select.value = value;
+}
+
+function setSelectedModel(model) {
+  const select = document.getElementById('agent-model');
+  if (!select || !model) return;
+  if (!Array.from(select.options).some(opt => opt.value === model)) {
+    select.add(new Option(model, model));
+  }
+  select.value = model;
+}
+
 function fillLinkPreset() {
+  const kb = getSelectedKB() || {kb_id: 'demo-enterprises-v1', kb_version: 'v1'};
   document.getElementById('lk-json').value = JSON.stringify({
-    schema_version: "v1",
-    request_id: "req-preset",
-    text: { content: "国家电网董事长在今日发布会上表示，华为将为公司数字化转型提供技术支持。该公司计划在未来三年投入百亿资金。平安证券分析师对此给予积极评价。", language: "zh" },
+    schema_version: 'v1',
+    request_id: 'req-demo',
+    text: {content: '国家电网与华为在数字化转型项目中展开合作。', language: 'zh'},
     mentions: [
-      { mention_id: "m1", surface_form: "国家电网", start_offset: 0, end_offset: 4 },
-      { mention_id: "m2", surface_form: "华为", start_offset: 14, end_offset: 16 },
-      { mention_id: "m3", surface_form: "该公司", start_offset: 25, end_offset: 28 },
-      { mention_id: "m4", surface_form: "平安证券", start_offset: 40, end_offset: 44 },
+      {mention_id: 'm1', surface_form: '国家电网', start_offset: 0, end_offset: 4},
+      {mention_id: 'm2', surface_form: '华为', start_offset: 5, end_offset: 7},
     ],
-    knowledge_base: { kb_id: "cn-enterprises-v1", kb_version: "v1" },
-    options: { top_k: 5, nil_threshold: 0.6, enable_nil: true, enable_coreference: true, return_candidates: true, return_evidence: true, linker_version: "v1" },
+    knowledge_base: {kb_id: kb.kb_id, kb_version: kb.kb_version},
+    options: defaultLinkOptions(),
   }, null, 2);
+}
+
+function fillAgentExample() {
+  document.getElementById('agent-message').value = '李导演的《断背山》真是令人动人，其中实体是李导演和断背山';
+}
+
+function clearAgentChat() {
+  agentHistory = [];
+  const log = document.getElementById('agent-chat-log');
+  log.innerHTML = '<div class="chat-msg chat-agent">对话已清空。你可以输入：文本：...；实体：A，B。</div>';
+}
+
+function appendChat(role, content, isError = false) {
+  const log = document.getElementById('agent-chat-log');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role === 'user' ? 'chat-user' : (isError ? 'chat-error' : 'chat-agent')}`;
+  div.textContent = content;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function sendAgentMessage() {
+  const input = document.getElementById('agent-message');
+  const message = input.value.trim();
+  if (!message) return;
+
+  const kb = getSelectedKB();
+    const selectedModel = document.getElementById('agent-model').value;
+    const model = selectedModel && selectedModel !== 'auto' ? selectedModel : null;
+  const history = agentHistory.slice(-8);
+  appendChat('user', message);
+  agentHistory.push({role: 'user', content: message});
+  input.value = '';
+
+  const btn = document.getElementById('agent-send-btn');
+  btn.disabled = true;
+  btn.textContent = 'Agent 思考中...';
+  try {
+    const result = await api('POST', '/api/v1/agent/chat', {
+      message,
+      kb_id: kb?.kb_id || null,
+      kb_version: kb?.kb_version || 'v1',
+      model,
+      history,
+      options: defaultLinkOptions(),
+      run_workflow: true,
+    });
+
+    if (!result.ok) {
+      const detail = result.data.detail || result.data;
+      const text = detail.message || JSON.stringify(detail, null, 2);
+      appendChat('assistant', text, true);
+      agentHistory.push({role: 'assistant', content: text});
+      return;
+    }
+
+    const data = result.data;
+    if (data.selected_model) setSelectedModel(data.selected_model);
+    if (data.selected_kb_id) setSelectedKB(data.selected_kb_id, data.selected_kb_version || 'v1');
+    appendChat('assistant', data.reply || '已处理。');
+    agentHistory.push({role: 'assistant', content: data.reply || '已处理。'});
+
+    if (data.link_request) {
+      document.getElementById('lk-json').value = JSON.stringify(data.link_request, null, 2);
+    } else if (data.intent !== 'link') {
+      const linkBox = document.getElementById('r-link');
+      linkBox.className = 'result-box ok';
+      linkBox.textContent = '本轮是普通对话或配置操作，没有生成 LinkRequest，也没有提交实体链接 workflow。';
+    }
+    if (data.link_response) {
+      renderLinkResult({ok: true, data: data.link_response});
+    }
+    if (data.intent === 'upload_kb') {
+      document.getElementById('agent-upload-file').focus();
+    }
+  } catch (err) {
+    appendChat('assistant', `Agent 请求失败：${String(err)}`, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '发送给 Agent';
+  }
 }
 
 async function runLink() {
   const btn = document.getElementById('lk-btn');
-  const errEl = document.getElementById('lk-err');
-  errEl.style.display = 'none';
-  btn.disabled = true; btn.textContent = '处理中...';
+  const err = document.getElementById('lk-err');
+  err.textContent = '';
   let body;
   try {
     body = JSON.parse(document.getElementById('lk-json').value);
   } catch (e) {
-    errEl.textContent = 'JSON 格式错误: ' + e.message;
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '▶ 执行链接';
+    err.textContent = 'JSON 格式错误：' + e.message;
     return;
   }
-  if (!body.mentions?.length) {
-    errEl.textContent = 'mentions 不能为空';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = '▶ 执行链接';
-    return;
-  }
-  const r = await api('POST', '/api/v1/entity-link', body);
-  btn.disabled = false; btn.textContent = '▶ 执行链接';
-  renderResult(r);
+  btn.disabled = true;
+  btn.textContent = '正在链接...';
+  const result = await api('POST', '/api/v1/entity-link', body);
+  btn.disabled = false;
+  btn.textContent = '执行链接';
+  renderLinkResult(result);
 }
 
-function renderResult({ ok, data }) {
+function renderLinkResult(result) {
   const el = document.getElementById('lk-result');
-  if (!ok) { el.innerHTML = `<div class="result-box err">${JSON.stringify(data,null,2)}</div>`; return; }
-  const s = data.summary;
-  const chains = data.coreference_chains || [];
+  if (!result.ok) {
+    el.innerHTML = `<div class="result-box err">${escapeHtml(JSON.stringify(result.data, null, 2))}</div>`;
+    return;
+  }
+  const data = result.data;
+  const summary = data.summary || {};
   el.innerHTML = `
-    <div class="summary-row">
-      <span>共 <b>${s.total_mentions}</b> 个 mention</span>
-      <span style="color:#1e7e34">linked: <b>${s.linked_count}</b></span>
-      <span style="color:#666">nil: <b>${s.nil_count}</b></span>
+    <div class="summary">
+      <span>mention：<b>${summary.total_mentions ?? data.results.length}</b></span>
+      <span>linked：<b>${summary.linked_count ?? 0}</b></span>
+      <span>nil：<b>${summary.nil_count ?? 0}</b></span>
     </div>
-    ${data.results.map(renderCard).join('')}
-    ${chains.length ? `<div class="section-lbl">共指链</div>${chains.map(c=>`
-      <div class="chain-row"><span class="tag">${c.chain_id}</span>
-      ${c.mention_ids.map(m=>`<span class="tag" style="background:#f0f0f0;color:#333">${m}</span>`).join(' → ')}
-      → <b>${c.entity_id}</b></div>`).join('')}` : ''}`;
+    ${data.results.map(renderResultCard).join('')}
+    ${data.coreference_chains?.length ? '<h2>共指链</h2>' + data.coreference_chains.map(c => `<div class="small"><span class="tag">${escapeHtml(c.chain_id)}</span>${c.mention_ids.map(escapeHtml).join(' -> ')} -> ${escapeHtml(c.entity_id)}</div>`).join('') : ''}
+  `;
 }
 
-function renderCard(r) {
-  return `<div class="mention-card">
-    <div class="mhead">
-      <b>${r.surface_form}</b>
-      <span style="color:#aaa;font-size:11px">${r.mention_id}</span>
-      <span class="status-badge ${r.link_status}">${r.link_status}</span>
-      ${r.entity ? `<span style="font-size:12px">→ <b>${r.entity.canonical_name}</b> <span style="color:#888">${r.entity.entity_id}</span></span>` : ''}
-      ${r.confidence ? `<span style="font-size:11px;color:#888;margin-left:auto">置信度 ${r.confidence.toFixed(3)}</span>` : ''}
+function renderResultCard(item) {
+  return `
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div><b>${escapeHtml(item.surface_form)}</b> <span class="small">${escapeHtml(item.mention_id)}</span></div>
+        <span class="status ${escapeHtml(item.link_status)}">${escapeHtml(item.link_status)}</span>
+      </div>
+      ${item.entity ? `<div style="margin-top:8px">标准实体：<b>${escapeHtml(item.entity.canonical_name)}</b> <span class="small">${escapeHtml(item.entity.entity_id)}</span></div>` : ''}
+      <div class="small" style="margin-top:6px">置信度：${Number(item.confidence || 0).toFixed(3)}</div>
+      ${item.coreference ? `<div class="small">共指来源：${escapeHtml(item.coreference.resolved_from)}</div>` : ''}
+      ${item.evidence?.length ? `<div style="margin-top:8px">${item.evidence.map(e => `<span class="tag">${escapeHtml(e.evidence_type)}</span><span class="small">${escapeHtml(e.detail)}</span><br>`).join('')}</div>` : ''}
+      ${item.candidates?.length ? `<div style="margin-top:8px">${item.candidates.map(c => `<div class="small">${escapeHtml(c.canonical_name)} (${escapeHtml(c.entity_id)}) score=${Number(c.score).toFixed(3)}</div>`).join('')}</div>` : ''}
     </div>
-    ${r.coreference ? `<div class="coref-info">↳ 共指回链自 <b>${r.coreference.resolved_from}</b></div>` : ''}
-    ${r.evidence?.length ? `<div class="section-lbl">依据</div>${r.evidence.map(e=>`<div class="evid-row"><span class="tag">${e.evidence_type}</span>${e.detail}</div>`).join('')}` : ''}
-    ${r.candidates?.length ? `<div class="section-lbl">候选</div>${r.candidates.map(c=>`<div class="cand-row"><span>${c.canonical_name} <span style="color:#aaa">${c.entity_id}</span></span><span>${c.score.toFixed(3)}<span class="score-bar" style="width:${Math.round(c.score*40)}px"></span></span></div>`).join('')}` : ''}
-  </div>`;
+  `;
 }
 
-// 启动
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/`/g, '&#96;');
+}
+
 checkHealth();
 loadKBs();
 </script>

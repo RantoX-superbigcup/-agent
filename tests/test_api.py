@@ -1,4 +1,5 @@
 import pytest
+import json
 
 
 _ENTITIES = [
@@ -82,6 +83,187 @@ def test_get_kb(client, kb_id):
     assert r.status_code == 200
     assert r.json()["kb_id"] == kb_id
     assert r.json()["entity_count"] == 1
+
+
+def test_import_kb_from_ccks_kb_data_file(client, tmp_path):
+    kb_file = tmp_path / "kb_data.jsonl"
+    records = [
+        {
+            "subject_id": "349056",
+            "subject": "李安",
+            "alias": ["Ang Lee", "李安导演"],
+            "type": ["人物"],
+            "data": [
+                {"predicate": "摘要", "object": "李安，华人电影导演，代表作包括《断背山》。"},
+                {"predicate": "职业", "object": "导演"},
+            ],
+        },
+        {
+            "subject_id": "83393",
+            "subject": "断背山",
+            "alias": ["Brokeback Mountain"],
+            "type": ["作品"],
+            "data": [
+                {"predicate": "摘要", "object": "《断背山》是一部由李安执导的电影。"},
+            ],
+        },
+    ]
+    kb_file.write_text("\n".join(json.dumps(item, ensure_ascii=False) for item in records), encoding="utf-8")
+
+    r = client.post("/api/v1/knowledge-bases/import-file", json={
+        "file_path": str(kb_file),
+        "kb_id": "ccks-import-test",
+        "kb_version": "v1",
+        "source_type": "ccks_kb_data",
+        "import_to_store": True,
+        "preview_limit": 2,
+    })
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] in {"created", "overwritten"}
+    assert data["entity_count"] == 2
+    assert data["entities_preview"][0]["canonical_name"] == "李安"
+
+    r = client.get("/api/v1/knowledge-bases/ccks-import-test")
+    assert r.status_code == 200
+    assert r.json()["entity_count"] == 2
+
+
+def test_import_kb_from_extensionless_ccks_kb_data_auto(client, tmp_path):
+    kb_file = tmp_path / "kb_data"
+    records = [
+        {
+            "subject_id": "349056",
+            "subject": "\u674e\u5b89",
+            "alias": ["Ang Lee", "\u674e\u5b89\u5bfc\u6f14"],
+            "type": ["\u4eba\u7269"],
+            "data": [
+                {"predicate": "\u6458\u8981", "object": "\u674e\u5b89\uff0c\u534e\u4eba\u7535\u5f71\u5bfc\u6f14\uff0c\u4ee3\u8868\u4f5c\u5305\u62ec\u300a\u65ad\u80cc\u5c71\u300b\u3002"},
+                {"predicate": "\u804c\u4e1a", "object": "\u5bfc\u6f14"},
+            ],
+        }
+    ]
+    kb_file.write_text("\n".join(json.dumps(item, ensure_ascii=False) for item in records), encoding="utf-8")
+
+    r = client.post("/api/v1/knowledge-bases/import-file", json={
+        "file_path": str(kb_file),
+        "kb_id": "ccks-extensionless-test",
+        "kb_version": "v1",
+        "source_type": "auto",
+        "import_to_store": True,
+        "preview_limit": 1,
+    })
+    assert r.status_code == 200
+    data = r.json()
+    assert data["source_type"] == "ccks_kb_data"
+    assert data["entity_count"] == 1
+    assert data["entities_preview"][0]["canonical_name"] == "\u674e\u5b89"
+    assert data["entities_preview"][0]["entity_type"] == "PERSON"
+
+
+def test_import_kb_from_wrapped_kb_data_object(client, tmp_path):
+    kb_file = tmp_path / "wrapped.json"
+    payload = {
+        "kb_data": [
+            {
+                "subject_id": "83393",
+                "subject": "\u65ad\u80cc\u5c71",
+                "alias": ["Brokeback Mountain"],
+                "type": ["\u4f5c\u54c1"],
+                "data": [
+                    {"predicate": "\u6458\u8981", "object": "\u300a\u65ad\u80cc\u5c71\u300b\u662f\u4e00\u90e8\u7531\u674e\u5b89\u6267\u5bfc\u7684\u7535\u5f71\u3002"},
+                ],
+            }
+        ]
+    }
+    kb_file.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    r = client.post("/api/v1/knowledge-bases/import-file", json={
+        "file_path": str(kb_file),
+        "kb_id": "ccks-wrapped-test",
+        "kb_version": "v1",
+        "source_type": "auto",
+        "import_to_store": True,
+        "preview_limit": 1,
+    })
+    assert r.status_code == 200
+    data = r.json()
+    assert data["entity_count"] == 1
+    assert data["entities_preview"][0]["entity_id"] == "83393"
+    assert data["entities_preview"][0]["canonical_name"] == "\u65ad\u80cc\u5c71"
+
+
+def test_import_kb_from_file_missing_path(client):
+    r = client.post("/api/v1/knowledge-bases/import-file", json={
+        "file_path": "not-exists-kb-data.json",
+        "source_type": "auto",
+    })
+    assert r.status_code == 400
+    assert r.json()["detail"]["code"] == "FILE_NOT_FOUND"
+
+
+def test_import_kb_from_uploaded_ccks_file(client):
+    records = [
+        {
+            "subject_id": "u001",
+            "subject": "北京大学",
+            "alias": ["北大", "Peking University"],
+            "type": ["机构"],
+            "data": [
+                {"predicate": "摘要", "object": "北京大学是中国著名高等学校。"},
+            ],
+        }
+    ]
+    content = "\n".join(json.dumps(item, ensure_ascii=False) for item in records).encode("utf-8")
+    r = client.post(
+        "/api/v1/knowledge-bases/import-upload",
+        data={
+            "kb_id": "uploaded-ccks-test",
+            "kb_version": "v1",
+            "source_type": "ccks_kb_data",
+            "import_to_store": "true",
+            "preview_limit": "1",
+            "use_llm": "false",
+        },
+        files={"file": ("kb_data.jsonl", content, "application/json")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["status"] in {"created", "overwritten"}
+    assert data["entity_count"] == 1
+    assert data["entities_preview"][0]["canonical_name"] == "北京大学"
+
+
+def test_import_kb_from_uploaded_extensionless_kb_data_auto(client):
+    records = [
+        {
+            "subject_id": "u-kb-data",
+            "subject": "\u676d\u5dde",
+            "alias": ["Hangzhou"],
+            "type": ["\u5730\u70b9"],
+            "data": [
+                {"predicate": "\u6458\u8981", "object": "\u676d\u5dde\u662f\u6d59\u6c5f\u7701\u7701\u4f1a\u57ce\u5e02\u3002"},
+            ],
+        }
+    ]
+    content = "\n".join(json.dumps(item, ensure_ascii=False) for item in records).encode("utf-8")
+    r = client.post(
+        "/api/v1/knowledge-bases/import-upload",
+        data={
+            "kb_id": "uploaded-extensionless-kb-data-test",
+            "kb_version": "v1",
+            "source_type": "auto",
+            "import_to_store": "true",
+            "preview_limit": "1",
+            "use_llm": "false",
+        },
+        files={"file": ("kb_data", content, "application/octet-stream")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["source_type"] == "ccks_kb_data"
+    assert data["entity_count"] == 1
+    assert data["entities_preview"][0]["canonical_name"] == "\u676d\u5dde"
 
 
 def test_entity_link_alias(client, kb_id):

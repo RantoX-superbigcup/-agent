@@ -15,6 +15,7 @@ cp .env.example .env
 # 3. 下载嵌入模型（首次需要，约 184MB）
 .\.venv\Scripts\python.exe scripts/download_model.py
 
+
 # 4. 启动服务
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -142,11 +143,14 @@ entity_link_agent/
 |------|------|------|
 | `GET` | `/health` | 健康检查 |
 | `POST` | `/api/v1/knowledge-bases` | 导入知识库（含实体，同名覆盖） |
+| `POST` | `/api/v1/knowledge-bases/import-file` | 从服务器本地文件转换并导入知识库 |
+| `POST` | `/api/v1/knowledge-bases/import-upload` | 从浏览器选择并上传文件转换为知识库 |
 | `GET` | `/api/v1/knowledge-bases` | 列出所有知识库 |
 | `GET` | `/api/v1/knowledge-bases/{kb_id}` | 查看知识库详情 |
 | `POST` | `/api/v1/entity-link` | 实体链接（核心接口） |
 
 > 注：`POST /api/v1/knowledge-bases/{kb_id}/entities` 已移除，统一为一步导入。
+> 文件导入支持 KBPackage JSON、实体数组 JSON/JSONL、CCKS `kb_data`、PDF 和文本；PDF/文本需要配置大模型 API 才能稳定抽取实体。网页上的“选择文件”使用 `/import-upload`，会弹出系统文件选择窗口。
 
 ## 架构
 
@@ -259,6 +263,35 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/v1/knowledge-base
 $body = Get-Content tests/fixtures/link_full.json -Raw -Encoding UTF8
 Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/v1/entity-link" `
   -ContentType "application/json" -Body $body
+```
+
+### 3. 从本地文件导入知识库
+
+```powershell
+$body = @{
+  file_path = "E:\平时\2026实训\阶段2\ccks2019_el\kb_data"
+  kb_id = "ccks2019-v1"
+  kb_version = "v1"
+  description = "CCKS2019 实体链接知识库"
+  source_type = "ccks_kb_data"
+  import_to_store = $true
+  include_entities = $false
+  preview_limit = 5
+  use_llm = $false
+} | ConvertTo-Json -Depth 6
+
+Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/v1/knowledge-bases/import-file" `
+  -ContentType "application/json" -Body $body
+```
+
+网页模式可以直接打开 `http://localhost:8000/`，在“知识库管理 -> 从本地文件导入”中点击“选择文件”，选择 `.json`、`.jsonl`、`.pdf`、`.txt` 或 `.md` 文件后上传。
+
+如果导入 PDF 或纯文本，并希望自动抽取实体，需要先在 `.env` 配置：
+
+```powershell
+DEEPSEEK_API_KEY=你的key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-chat
 ```
 
 ### 3. 调节 NIL 阈值测试
