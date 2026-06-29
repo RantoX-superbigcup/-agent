@@ -1,0 +1,332 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+from app.models.entity import Entity
+from app.models.enums import EntityType, LinkStatus
+from app.models.request import LinkRequest
+from app.services.link_service import LinkService
+from app.storage.kb_store import KBStore
+
+
+def _service(tmp_path, entities: list[Entity]) -> LinkService:
+    store = KBStore(tmp_path)
+    store.import_full("score-kb", "v1", "scoring regression kb", entities)
+    config = SimpleNamespace(coreference_terms=set(), index_dir=None)
+    return LinkService(store, config)
+
+
+def test_llm_alias_expansion_beats_misleading_surface_alias(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_LICHI",
+                canonical_name="李力持",
+                entity_type=EntityType.PERSON,
+                aliases=["李导演"],
+                description="香港喜剧导演，常与周星驰合作。",
+                keywords=["喜剧", "周星驰", "导演"],
+            ),
+            Entity(
+                entity_id="E_ANGLEE",
+                canonical_name="李安",
+                entity_type=EntityType.PERSON,
+                aliases=["Ang Lee"],
+                description="华人电影导演，凭借《断背山》获得奥斯卡最佳导演奖。",
+                keywords=["导演", "断背山", "奥斯卡", "电影"],
+            ),
+        ],
+    )
+    request = LinkRequest(
+        request_id="score-alias-expansion",
+        text={"content": "李导演的《断背山》真是令人动人", "language": "zh"},
+        mentions=[
+            {
+                "mention_id": "m1",
+                "surface_form": "李导演",
+                "start_offset": 0,
+                "end_offset": 3,
+                "entity_type": "PERSON",
+                "candidate_aliases": ["李安"],
+            }
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.linked
+    assert result.entity is not None
+    assert result.entity.entity_id == "E_ANGLEE"
+    assert any(e.detail.endswith("llm_alias_expansion") for e in result.evidence)
+
+
+def test_weak_llm_alias_expansion_requires_review(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_TSUI",
+                canonical_name="徐克",
+                entity_type=EntityType.PERSON,
+                aliases=["徐老怪"],
+                description="香港电影导演，执导《智取威虎山》《黄飞鸿》等电影。",
+                keywords=["徐克", "导演", "电影", "智取威虎山", "黄飞鸿"],
+            )
+        ],
+    )
+    request = LinkRequest(
+        request_id="score-weak-alias-expansion",
+        text={"content": "徐先生的电影广受好评", "language": "zh"},
+        mentions=[
+            {
+                "mention_id": "m1",
+                "surface_form": "徐先生",
+                "start_offset": 0,
+                "end_offset": 3,
+                "entity_type": "PERSON",
+                "candidate_aliases": ["徐克"],
+            }
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.ambiguous
+    assert result.entity is not None
+    assert result.entity.entity_id == "E_TSUI"
+    assert any("human_review_required" in e.detail for e in result.evidence)
+    assert not any("别名扩展已通过上下文验证" in e.detail for e in result.evidence)
+
+
+def test_strong_context_validates_llm_alias_expansion(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_TSUI",
+                canonical_name="徐克",
+                entity_type=EntityType.PERSON,
+                aliases=["徐老怪"],
+                description="香港电影导演，执导《智取威虎山》《黄飞鸿》等电影。",
+                keywords=["徐克", "导演", "电影", "智取威虎山", "黄飞鸿"],
+            )
+        ],
+    )
+    request = LinkRequest(
+        request_id="score-strong-alias-expansion",
+        text={"content": "徐先生执导的《智取威虎山》广受好评", "language": "zh"},
+        mentions=[
+            {
+                "mention_id": "m1",
+                "surface_form": "徐先生",
+                "start_offset": 0,
+                "end_offset": 3,
+                "entity_type": "PERSON",
+                "candidate_aliases": ["徐克"],
+            }
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.linked
+    assert result.entity is not None
+    assert result.entity.entity_id == "E_TSUI"
+    assert any("别名扩展已通过上下文验证" in e.detail for e in result.evidence)
+
+
+def test_director_context_disambiguates_brokeback_mountain_movie(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_MOVIE",
+                canonical_name="断背山",
+                entity_type=EntityType.OTHER,
+                aliases=["Brokeback Mountain"],
+                description="《断背山》由李安执导，希斯莱杰主演，是一部爱情电影，曾获奥斯卡和金狮奖。",
+                keywords=["断背山", "李安", "执导", "主演", "电影", "奥斯卡", "金狮"],
+            ),
+            Entity(
+                entity_id="E_NOVEL",
+                canonical_name="断背山",
+                entity_type=EntityType.OTHER,
+                aliases=[],
+                description="《断背山》是安妮普鲁克斯编著的短篇小说，后被改编为同名电影。",
+                keywords=["断背山", "小说", "作者", "文学体裁", "改编电影"],
+            ),
+        ],
+    )
+    request = LinkRequest(
+        request_id="score-director-context",
+        text={"content": "李安导演的《断背山》真是令人动人", "language": "zh"},
+        mentions=[
+            {
+                "mention_id": "m1",
+                "surface_form": "断背山",
+                "start_offset": 6,
+                "end_offset": 9,
+                "entity_type": "OTHER",
+            }
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.linked
+    assert result.entity is not None
+    assert result.entity.entity_id == "E_MOVIE"
+    assert result.confidence > result.candidates[1].score
+
+
+def test_title_context_expands_general_secretary_to_person(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_STARLIGHT",
+                canonical_name="星光熠熠",
+                entity_type=EntityType.PERSON,
+                aliases=["总书记"],
+                description="动画角色。",
+                keywords=["小马宝莉", "总书记"],
+            ),
+            Entity(
+                entity_id="E_TITLE",
+                canonical_name="总书记",
+                entity_type=EntityType.OTHER,
+                aliases=["第一书记"],
+                description="政党最高负责人的称谓。",
+                keywords=["总书记", "职务"],
+            ),
+            Entity(
+                entity_id="E_XI",
+                canonical_name="习近平",
+                entity_type=EntityType.PERSON,
+                aliases=[],
+                description="现任中国共产党中央委员会总书记，曾提出绿水青山就是金山银山。",
+                keywords=["习近平", "总书记", "绿水青山就是金山银山"],
+            ),
+        ],
+    )
+    request = LinkRequest(
+        request_id="score-title-context",
+        text={"content": "杭州西湖的美景离不开总书记的“绿水青山就是金山银山”的方略", "language": "zh"},
+        mentions=[
+            {"mention_id": "m1", "surface_form": "总书记", "start_offset": 10, "end_offset": 13}
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.linked
+    assert result.entity is not None
+    assert result.entity.entity_id == "E_XI"
+
+
+def test_hangzhou_context_expands_west_lake(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_HUIZHOU",
+                canonical_name="西湖",
+                entity_type=EntityType.LOC,
+                aliases=["惠州西湖"],
+                description="惠州西湖风景名胜区。",
+                keywords=["西湖", "惠州"],
+            ),
+            Entity(
+                entity_id="E_HANGZHOU_WEST_LAKE",
+                canonical_name="杭州西湖",
+                entity_type=EntityType.LOC,
+                aliases=["西湖"],
+                description="杭州西湖位于浙江省杭州市西部，是著名旅游胜地。",
+                keywords=["杭州西湖", "杭州", "西湖", "美景"],
+            ),
+        ],
+    )
+    request = LinkRequest(
+        request_id="score-west-lake-context",
+        text={"content": "杭州西湖的美景令人难忘", "language": "zh"},
+        mentions=[
+            {"mention_id": "m1", "surface_form": "西湖", "start_offset": 2, "end_offset": 4}
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.linked
+    assert result.entity is not None
+    assert result.entity.entity_id == "E_HANGZHOU_WEST_LAKE"
+
+
+def test_company_coreference_keeps_nil_antecedent(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_XI",
+                canonical_name="习近平",
+                entity_type=EntityType.PERSON,
+                aliases=[],
+                description="现任中国共产党中央委员会总书记，提出绿水青山就是金山银山理念。",
+                keywords=["习近平", "总书记", "绿水青山就是金山银山"],
+            ),
+            Entity(
+                entity_id="E_STARLIGHT",
+                canonical_name="星光熠熠",
+                entity_type=EntityType.PERSON,
+                aliases=["总书记"],
+                description="动画角色。",
+                keywords=["小马宝莉", "总书记"],
+            ),
+        ],
+    )
+    service.config.coreference_terms = {"他", "该公司"}
+    request = LinkRequest(
+        request_id="score-nil-company-coref",
+        text={
+            "content": "总书记提出绿水青山就是金山银山理念；他强调生态保护。幻影生态科技公司宣布建设景区，但该公司不在知识库中。",
+            "language": "zh",
+        },
+        mentions=[
+            {"mention_id": "m1", "surface_form": "总书记", "start_offset": 0, "end_offset": 3},
+            {"mention_id": "m2", "surface_form": "他", "start_offset": 19, "end_offset": 20},
+            {"mention_id": "m3", "surface_form": "幻影生态科技公司", "start_offset": 27, "end_offset": 35},
+            {"mention_id": "m4", "surface_form": "该公司", "start_offset": 45, "end_offset": 48},
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    by_id = {item.mention_id: item for item in response.results}
+    assert by_id["m1"].entity is not None
+    assert by_id["m1"].entity.entity_id == "E_XI"
+    assert by_id["m2"].entity is not None
+    assert by_id["m2"].entity.entity_id == "E_XI"
+    assert by_id["m3"].link_status == LinkStatus.nil
+    assert by_id["m4"].link_status == LinkStatus.nil
+    assert by_id["m4"].coreference is not None
+    assert by_id["m4"].coreference.resolved_from == "m3"

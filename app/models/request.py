@@ -1,5 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, Field
+from app.models.enums import EntityType
 
 
 class TextInput(BaseModel):
@@ -12,6 +13,8 @@ class MentionInput(BaseModel):
     surface_form: str
     start_offset: int
     end_offset: int
+    entity_type: Optional[EntityType] = None
+    candidate_aliases: list[str] = Field(default_factory=list)
 
 
 class KnowledgeBaseRef(BaseModel):
@@ -22,6 +25,7 @@ class KnowledgeBaseRef(BaseModel):
 class LinkOptions(BaseModel):
     top_k: int = 5
     nil_threshold: float = 0.6
+    ambiguity_margin: float = 0.08
     enable_nil: bool = True
     enable_coreference: bool = True
     return_candidates: bool = True

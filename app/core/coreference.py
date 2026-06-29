@@ -1,8 +1,11 @@
 from __future__ import annotations
-from app.core.candidate import CandidateResult
 from app.models.request import MentionInput
 from app.models.response import LinkResult, CoreferenceInfo, CoreferenceChain
 from app.models.enums import LinkStatus
+
+_ORG_COREF_TERMS = {"该公司", "该企业", "该机构", "该集团"}
+_PERSON_COREF_TERMS = {"他", "她"}
+_ORG_SURFACE_HINTS = ("公司", "企业", "集团", "机构", "科技")
 
 
 def resolve(
@@ -24,7 +27,10 @@ def resolve(
         # ── 先检查触发词（优先级高于 link_status） ──
         if mention.surface_form in trigger_terms:
             resolved = False
-            for prev in reversed(updated[:i]):
+            previous_items = list(zip(mentions[:i], updated[:i]))
+            for prev_mention, prev in reversed(previous_items):
+                if not _antecedent_matches(mention.surface_form, prev_mention, prev):
+                    continue
                 if prev.link_status == LinkStatus.linked and prev.entity:
                     eid = prev.entity.entity_id
                     chain_id = entity_to_chain.get(eid)
@@ -41,6 +47,18 @@ def resolve(
                     })
                     if chain_id:
                         chains[chain_id].append(result.mention_id)
+                    resolved = True
+                    break
+                if prev.link_status == LinkStatus.nil:
+                    updated[i] = result.model_copy(update={
+                        "link_status": LinkStatus.nil,
+                        "entity": None,
+                        "confidence": 0.0,
+                        "coreference": CoreferenceInfo(
+                            resolved_from=prev.mention_id,
+                            chain_id="nil_coref",
+                        ),
+                    })
                     resolved = True
                     break
             if not resolved:
@@ -66,3 +84,15 @@ def resolve(
         if len(mids) > 1
     ]
     return updated, coref_chains
+
+
+def _antecedent_matches(trigger: str, previous_mention: MentionInput, previous: LinkResult) -> bool:
+    if trigger in _ORG_COREF_TERMS:
+        if previous.entity and previous.entity.entity_type.value == "ORG":
+            return True
+        return any(hint in previous_mention.surface_form for hint in _ORG_SURFACE_HINTS)
+
+    if trigger in _PERSON_COREF_TERMS:
+        return bool(previous.entity and previous.entity.entity_type.value == "PERSON")
+
+    return previous.link_status == LinkStatus.linked and previous.entity is not None

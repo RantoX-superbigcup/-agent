@@ -46,6 +46,8 @@ class LinkSummary(BaseModel):
     total_mentions: int
     linked_count: int
     nil_count: int
+    ambiguous_count: int = 0
+    review_count: int = 0
 
 
 class LinkTrace(BaseModel):

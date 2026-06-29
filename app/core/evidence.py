@@ -35,4 +35,25 @@ def build_evidence(candidate: CandidateResult, context: str) -> list[EvidenceIte
             evidence_type=EvidenceType.context_match,
             detail=f"上下文包含关键词：{'、'.join(kw_hits[:5])}",
         ))
+    for reason in candidate.reasons:
+        if reason in {"llm_alias_expansion", "alias_prior_support"}:
+            items.append(EvidenceItem(
+                evidence_type=EvidenceType.model_inference,
+                detail=f"模型/先验加权依据：{reason}",
+            ))
+        elif reason == "contextual_alias_expansion":
+            items.append(EvidenceItem(
+                evidence_type=EvidenceType.model_inference,
+                detail="上下文规则触发别名扩展",
+            ))
+        elif reason == "expansion_context_validated":
+            items.append(EvidenceItem(
+                evidence_type=EvidenceType.model_inference,
+                detail="别名扩展已通过上下文验证",
+            ))
+        elif reason == "entity_type_aligned":
+            items.append(EvidenceItem(
+                evidence_type=EvidenceType.type_match,
+                detail="mention 类型与候选实体类型一致",
+            ))
     return items

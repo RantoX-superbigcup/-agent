@@ -69,6 +69,7 @@ class LinkService:
         builder.add_node("rerank", RunnableLambda(self._rerank, name="rerank"))
         builder.add_node("resolve", RunnableLambda(self._resolve, name="resolve"))
         builder.add_node("coreference", RunnableLambda(self._coreference, name="coreference"))
+        builder.add_node("human_review", RunnableLambda(self._human_review, name="human_review"))
         builder.add_edge(START, "validate")
         builder.add_conditional_edges("validate", self._route_validate, {"ok": "load_kb", "error": END})
         builder.add_edge("load_kb", "generate_candidates")
@@ -76,7 +77,8 @@ class LinkService:
         builder.add_edge("nil_fallback", END)
         builder.add_edge("rerank", "resolve")
         builder.add_edge("resolve", "coreference")
-        builder.add_edge("coreference", END)
+        builder.add_conditional_edges("coreference", self._review_route, {"auto_accept": END, "needs_review": "human_review"})
+        builder.add_edge("human_review", END)
         return builder.compile()
 
     def _validate(self, state: LinkState) -> dict:
@@ -223,6 +225,43 @@ class LinkService:
             final.append(r)
         return {"results": final, "coref_chains": chains}
 
+    def _review_route(self, state: LinkState) -> str:
+        req = state["request"]
+        needs_review = any(self._needs_review(result, req.options) for result in state.get("results", []))
+        if needs_review:
+            logger.info("  [review] 检测到低置信或歧义结果，进入人工复核分支")
+        return "needs_review" if needs_review else "auto_accept"
+
+    def _human_review(self, state: LinkState) -> dict:
+        logger.info("  [review] 标记需要人工复核的 mention...")
+        req = state["request"]
+        reviewed: list[LinkResult] = []
+        for result in state.get("results", []):
+            if self._needs_review(result, req.options):
+                evidence = list(result.evidence)
+                evidence.append(
+                    EvidenceItem(
+                        evidence_type=EvidenceType.model_inference,
+                        detail="human_review_required: low_confidence_or_ambiguous",
+                    )
+                )
+                reviewed.append(result.model_copy(update={"evidence": evidence}))
+            else:
+                reviewed.append(result)
+        return {"results": reviewed}
+
+    @staticmethod
+    def _needs_review(result: LinkResult, options: LinkOptions) -> bool:
+        if result.link_status == LinkStatus.ambiguous:
+            return True
+        if result.link_status == LinkStatus.nil and result.candidates:
+            return True
+        if result.link_status == LinkStatus.nil and result.coreference:
+            return True
+        if result.entity and result.confidence < options.nil_threshold:
+            return True
+        return False
+
     @staticmethod
     def _fmt_candidates(cands: list[candidate_mod.CandidateResult], options: LinkOptions) -> list[CandidateItem]:
         if not options.return_candidates:
@@ -235,13 +274,27 @@ class LinkService:
         linked = sum(1 for r in results if r.link_status == LinkStatus.linked)
         nil = sum(1 for r in results if r.link_status == LinkStatus.nil)
         opts = request.options
+        ambiguous = sum(1 for r in results if r.link_status == LinkStatus.ambiguous)
+        review = sum(1 for r in results if self._needs_review(r, opts))
         return LinkResponse(
             request_id=request.request_id, status="success",
             results=results, coreference_chains=chains,
-            summary=LinkSummary(total_mentions=len(results), linked_count=linked, nil_count=nil),
+            summary=LinkSummary(
+                total_mentions=len(results),
+                linked_count=linked,
+                nil_count=nil,
+                ambiguous_count=ambiguous,
+                review_count=review,
+            ),
             trace=LinkTrace(
                 linker_version=opts.linker_version,
                 kb_id=request.knowledge_base.kb_id, kb_version=request.knowledge_base.kb_version,
-                options_used={"top_k": opts.top_k, "nil_threshold": opts.nil_threshold, "enable_nil": opts.enable_nil, "enable_coreference": opts.enable_coreference},
+                options_used={
+                    "top_k": opts.top_k,
+                    "nil_threshold": opts.nil_threshold,
+                    "ambiguity_margin": opts.ambiguity_margin,
+                    "enable_nil": opts.enable_nil,
+                    "enable_coreference": opts.enable_coreference,
+                },
             ),
         )

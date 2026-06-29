@@ -195,6 +195,7 @@ function defaultLinkOptions() {
   return {
     top_k: 5,
     nil_threshold: 0.6,
+    ambiguity_margin: 0.08,
     enable_nil: true,
     enable_coreference: true,
     return_candidates: true,
@@ -599,6 +600,8 @@ function renderLinkResult(result) {
       <span>mention：<b>${summary.total_mentions ?? data.results.length}</b></span>
       <span>linked：<b>${summary.linked_count ?? 0}</b></span>
       <span>nil：<b>${summary.nil_count ?? 0}</b></span>
+      <span>ambiguous：<b>${summary.ambiguous_count ?? 0}</b></span>
+      <span>review：<b>${summary.review_count ?? 0}</b></span>
     </div>
     ${data.results.map(renderResultCard).join('')}
     ${data.coreference_chains?.length ? '<h2>共指链</h2>' + data.coreference_chains.map(c => `<div class="small"><span class="tag">${escapeHtml(c.chain_id)}</span>${c.mention_ids.map(escapeHtml).join(' -> ')} -> ${escapeHtml(c.entity_id)}</div>`).join('') : ''}

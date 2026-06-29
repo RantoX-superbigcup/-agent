@@ -295,6 +295,8 @@ class AgentChatService:
             "问候、闲聊、问怎么使用、解释概念、讨论项目、切换知识库、切换模型或上传知识库，都不要生成 link_request，必须令 link_request=null。\n"
             "LinkRequest 必须满足：schema_version='v1'；request_id 可先留空；text.content 必须是用户给出的原文；"
             "text.language 默认 zh；mentions 必须是数组，每个 mention 包含 mention_id、surface_form、start_offset、end_offset；"
+            "mention 可选字段包括 entity_type 和 candidate_aliases。candidate_aliases 用于保存你根据上下文推断出的候选标准名或别名，"
+            "例如“李导演的《断背山》”中，李导演可给 candidate_aliases=[\"李安\"]，但不要无根据扩展。\n"
             "knowledge_base 使用当前选中的 kb_id/kb_version，除非用户明确要求切换；options 保持默认即可。\n"
             "如果用户说“文本是/句子是/内容是...，实体是/mention 是...”，intent=link，并提取实体为 mentions。"
             "如果用户只说换知识库，intent=switch_kb；只说换模型，intent=switch_model；说上传知识库，intent=upload_kb。"
@@ -391,14 +393,62 @@ class AgentChatService:
             end = start + len(surface)
             cursor = max(cursor, end)
             mentions.append(
-                {
-                    "mention_id": f"m{len(mentions) + 1}",
-                    "surface_form": surface,
-                    "start_offset": start,
-                    "end_offset": end,
-                }
+                self._build_mention_payload(
+                    item,
+                    mention_id=f"m{len(mentions) + 1}",
+                    surface_form=surface,
+                    start_offset=start,
+                    end_offset=end,
+                )
             )
         return mentions
+
+    def _build_mention_payload(self, item: Any, **base: Any) -> dict[str, Any]:
+        if not isinstance(item, dict):
+            return base
+
+        entity_type = item.get("entity_type") or item.get("type")
+        if entity_type:
+            base["entity_type"] = self._normalize_entity_type(str(entity_type))
+
+        aliases = item.get("candidate_aliases") or item.get("aliases") or item.get("expanded_aliases") or []
+        if isinstance(aliases, str):
+            aliases = self._split_mentions(aliases)
+        if isinstance(aliases, list):
+            normalized_aliases = []
+            seen = {base["surface_form"].strip()}
+            for alias in aliases:
+                alias_text = str(alias).strip()
+                if alias_text and alias_text not in seen:
+                    seen.add(alias_text)
+                    normalized_aliases.append(alias_text)
+            if normalized_aliases:
+                base["candidate_aliases"] = normalized_aliases
+
+        return base
+
+    def _normalize_entity_type(self, value: str) -> str:
+        value = value.strip().upper()
+        mapping = {
+            "人": "PERSON",
+            "人物": "PERSON",
+            "导演": "PERSON",
+            "PERSON": "PERSON",
+            "组织": "ORG",
+            "机构": "ORG",
+            "公司": "ORG",
+            "企业": "ORG",
+            "ORG": "ORG",
+            "地点": "LOC",
+            "地名": "LOC",
+            "城市": "LOC",
+            "LOC": "LOC",
+            "作品": "OTHER",
+            "电影": "OTHER",
+            "书籍": "OTHER",
+            "OTHER": "OTHER",
+        }
+        return mapping.get(value, "OTHER")
 
     def _select_kb(self, kb_id: str | None, kb_version: str) -> tuple[str | None, str | None]:
         if kb_id:
