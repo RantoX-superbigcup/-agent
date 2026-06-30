@@ -165,6 +165,10 @@ def resolve(
         context,
     )
 
+    mention_order = {mention.mention_id: order for order, mention in enumerate(mentions)}
+    for mention_ids in chains.values():
+        mention_ids.sort(key=lambda mention_id: mention_order.get(mention_id, len(mention_order)))
+
     coref_chains = [
         CoreferenceChain(chain_id=cid, mention_ids=mids, entity_id=chain_entity[cid])
         for cid, mids in chains.items()
@@ -267,7 +271,9 @@ def _ensure_chain(
         chains[chain_id] = [result.mention_id]
         chain_entity[chain_id] = eid
         return True
-    chains[entity_to_chain[eid]].append(result.mention_id)
+    chain_id = entity_to_chain[eid]
+    if result.mention_id not in chains[chain_id]:
+        chains[chain_id].append(result.mention_id)
     return False
 
 
@@ -295,7 +301,7 @@ def _copy_linked_coreference(
         "coreference": coref,
         "evidence": result.evidence,
     })
-    if chain_id:
+    if chain_id and result.mention_id not in chains[chain_id]:
         chains[chain_id].append(result.mention_id)
 
 

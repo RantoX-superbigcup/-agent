@@ -270,7 +270,7 @@ class LinkService:
         final = []
         for r in updated:
             if r.coreference and options.return_evidence:
-                r = r.model_copy(update={"evidence": list(r.evidence) + [EvidenceItem(evidence_type=EvidenceType.coreference, detail=f"该 mention 回指前文 mention {r.coreference.resolved_from}")]})
+                r = r.model_copy(update={"evidence": list(r.evidence) + [EvidenceItem(evidence_type=EvidenceType.coreference, detail=f"该 mention 与 mention {r.coreference.resolved_from} 共指")]})
             final.append(r)
         return {"results": final, "coref_chains": chains}
 

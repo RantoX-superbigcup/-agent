@@ -613,6 +613,8 @@ def test_cataphora_pronouns_resolve_to_later_named_entity(tmp_path):
         assert by_id[mention_id].entity.entity_id == "E_NEZHA"
         assert by_id[mention_id].coreference is not None
         assert by_id[mention_id].coreference.resolved_from == "m4"
+    assert response.coreference_chains
+    assert response.coreference_chains[0].mention_ids == ["m1", "m2", "m3", "m4"]
 
 
 def test_duplicate_canonical_candidates_can_auto_accept_with_context(tmp_path):
