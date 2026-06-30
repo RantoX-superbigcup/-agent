@@ -22,6 +22,11 @@ def decide(
         if top.score < options.nil_threshold:
             return "nil", top
 
+    # CCKS 里常见同一标准名对应多条实体记录。若近邻候选都是同名实体，
+    # 这里优先当作知识库脏数据处理，而不是让 LLM 别名扩展直接进入复核。
+    if _has_duplicate_canonical_auto_accept(top, candidates):
+        return "linked", top
+
     if _requires_review_for_weak_expansion(top):
         return "ambiguous", top
 
@@ -30,8 +35,6 @@ def decide(
 
     # 歧义检测
     if len(candidates) > 1 and (top.score - candidates[1].score) < options.ambiguity_margin:
-        if _has_duplicate_canonical_auto_accept(top, candidates):
-            return "linked", top
         if _has_strong_auto_accept_evidence(top, top.score - candidates[1].score):
             return "linked", top
         return "ambiguous", top

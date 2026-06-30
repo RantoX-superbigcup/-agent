@@ -105,6 +105,55 @@ def test_weak_llm_alias_expansion_requires_review(tmp_path):
     assert not any("别名扩展已通过上下文验证" in e.detail for e in result.evidence)
 
 
+def test_duplicate_canonical_alias_expansion_auto_accepts_dirty_kb_records(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_ANGLEE_1",
+                canonical_name="李安",
+                entity_type=EntityType.PERSON,
+                aliases=[],
+                description="华人电影导演。",
+                keywords=["导演", "电影"],
+            ),
+            Entity(
+                entity_id="E_ANGLEE_2",
+                canonical_name="李安",
+                entity_type=EntityType.PERSON,
+                aliases=[],
+                description="同名重复实体记录。",
+                keywords=["导演"],
+            ),
+        ],
+    )
+    request = LinkRequest(
+        request_id="score-duplicate-alias-expansion",
+        text={"content": "李导演的电影广受好评", "language": "zh"},
+        mentions=[
+            {
+                "mention_id": "m1",
+                "surface_form": "李导演",
+                "start_offset": 0,
+                "end_offset": 3,
+                "entity_type": "PERSON",
+                "candidate_aliases": ["李安"],
+            }
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.linked
+    assert result.entity is not None
+    assert result.entity.canonical_name == "李安"
+    assert any("同名重复实体" in e.detail for e in result.evidence)
+    assert not any("human_review_required" in e.detail for e in result.evidence)
+
+
 def test_strong_context_validates_llm_alias_expansion(tmp_path):
     service = _service(
         tmp_path,
