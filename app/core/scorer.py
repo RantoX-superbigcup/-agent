@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional
 import json
 from app.core.candidate import CandidateResult
+from app.core.kb_profile import ScoreWeights
 from app.models.entity import Entity
 from app.models.request import MentionInput
 from app.storage.index import normalize
@@ -102,8 +103,10 @@ def rescore(
     mention: MentionInput,
     context: str,
     alias_prior: Optional[AliasPrior] = None,
+    weights: Optional[ScoreWeights] = None,
 ) -> CandidateResult:
     entity = candidate.entity
+    weights = weights or ScoreWeights()
 
     # 上下文匹配分
     hits = _keyword_hits(context, entity.keywords)
@@ -113,21 +116,27 @@ def rescore(
 
     # 先验概率加分
     prior_score = alias_prior.score(mention.surface_form, entity.entity_id) if alias_prior else 0.0
-    prior_bonus = 0.22 * prior_score
+    prior_bonus = weights.prior_weight * prior_score
 
     reasons = set(candidate.reasons)
-    type_bonus = 0.05 if mention.entity_type and mention.entity_type == entity.entity_type else 0.0
-    inferred_type_bonus = 0.04 if not mention.entity_type and _looks_like_location_context(mention.surface_form, context) and entity.entity_type.value == "LOC" else 0.0
-    canonical_bonus = 0.03 if normalize(mention.surface_form) == normalize(entity.canonical_name) else 0.0
-    expansion_bonus = 0.08 if "llm_alias_expansion" in reasons else 0.0
+    type_bonus = weights.type_bonus if mention.entity_type and mention.entity_type == entity.entity_type else 0.0
+    inferred_type_bonus = (
+        weights.inferred_type_bonus
+        if not mention.entity_type
+        and _looks_like_location_context(mention.surface_form, context)
+        and entity.entity_type.value == "LOC"
+        else 0.0
+    )
+    canonical_bonus = weights.canonical_bonus if normalize(mention.surface_form) == normalize(entity.canonical_name) else 0.0
+    expansion_bonus = weights.expansion_bonus if "llm_alias_expansion" in reasons else 0.0
     expansion_canonical_bonus = (
-        0.08
+        weights.expansion_canonical_bonus
         if "llm_alias_expansion" in reasons
         and normalize(candidate.matched_name) == normalize(entity.canonical_name)
         else 0.0
     )
     dirty_expansion_penalty = (
-        0.04
+        weights.dirty_expansion_penalty
         if "llm_alias_expansion" in reasons
         and normalize(candidate.matched_name) != normalize(entity.canonical_name)
         else 0.0
@@ -143,8 +152,8 @@ def rescore(
         0.0,
         min(
             1.0,
-        0.62 * candidate.alias_similarity
-        + 0.23 * ctx_score
+        weights.alias_weight * candidate.alias_similarity
+        + weights.context_weight * ctx_score
         + type_bonus
         + inferred_type_bonus
         + canonical_bonus

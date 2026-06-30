@@ -15,6 +15,8 @@ logger = logging.getLogger("entity_link_agent")
 
 _MAX_FUZZY_SCAN = 5000
 _MIN_SIMILARITY = 0.35
+_MIN_DESCRIPTIVE_SCORE = 0.16
+_DESCRIPTIVE_CONTEXT_RADIUS = 18
 
 # 精确命中保底分数
 _EXACT_FLOOR: dict[str, float] = {
@@ -156,36 +158,51 @@ def _rule_retrieve(
         return exact_hits[:max(top_k * 20, 50)]
     if len(entities) > _MAX_FUZZY_SCAN:
         return []
-    return _fuzzy_retrieve(mention, context, entities, top_k)
+    fuzzy_hits = _fuzzy_retrieve(mention, context, entities, top_k)
+    if fuzzy_hits:
+        return fuzzy_hits
+    return _descriptive_retrieve(mention, context, entities, top_k)
 
 
 def _exact_retrieve(mention: MentionInput, context: str, index: NameIndex) -> list[CandidateResult]:
     results: list[CandidateResult] = []
-    seen_ids: set[str] = set()
+    by_id: dict[str, CandidateResult] = {}
     for query in _query_texts(mention, context):
         is_expansion = normalize(query) != normalize(mention.surface_form)
         is_contextual_expansion = _is_contextual_alias(mention.surface_form, context, query)
         for entity in index.lookup(query):
-            if entity.entity_id in seen_ids:
-                continue
-            seen_ids.add(entity.entity_id)
             source = _match_source(query, entity)
             score = _EXACT_FLOOR.get(source, 0.90)
+            existing = by_id.get(entity.entity_id)
+            if existing:
+                if is_expansion and "llm_alias_expansion" not in existing.reasons:
+                    existing.reasons.append("llm_alias_expansion")
+                if is_contextual_expansion and "contextual_alias_expansion" not in existing.reasons:
+                    existing.reasons.append("contextual_alias_expansion")
+                reason = _reason_for_source(source)
+                if reason not in existing.reasons:
+                    existing.reasons.append(reason)
+                if is_contextual_expansion or score > existing.score:
+                    existing.score = max(existing.score, score)
+                    existing.matched_name = query
+                    existing.match_source = source
+                    existing.alias_similarity = 1.0
+                continue
             reasons = [_reason_for_source(source)]
             if is_expansion:
                 reasons.append("llm_alias_expansion")
             if is_contextual_expansion:
                 reasons.append("contextual_alias_expansion")
-            results.append(
-                CandidateResult(
-                    entity=entity,
-                    score=score,
-                    matched_name=query,
-                    match_source=source,
-                    alias_similarity=1.0,
-                    reasons=reasons,
-                )
+            candidate = CandidateResult(
+                entity=entity,
+                score=score,
+                matched_name=query,
+                match_source=source,
+                alias_similarity=1.0,
+                reasons=reasons,
             )
+            by_id[entity.entity_id] = candidate
+            results.append(candidate)
     return results
 
 
@@ -233,6 +250,78 @@ def _fuzzy_retrieve(
             ))
     candidates.sort(key=lambda c: c.score, reverse=True)
     return candidates[:top_k]
+
+
+def _descriptive_retrieve(
+    mention: MentionInput,
+    context: str,
+    entities: list[Entity],
+    top_k: int,
+) -> list[CandidateResult]:
+    query_text = _mention_context_window(mention, context)
+    query_tokens = _char_bigrams(query_text)
+    if not query_tokens:
+        return []
+
+    candidates: list[CandidateResult] = []
+    for entity in entities:
+        entity_text = _entity_search_text(entity)
+        entity_tokens = _char_bigrams(entity_text)
+        if not entity_tokens:
+            continue
+        overlap = len(query_tokens & entity_tokens)
+        if overlap == 0:
+            continue
+        coverage = overlap / max(1, len(query_tokens))
+        entity_coverage = overlap / max(1, min(len(entity_tokens), 80))
+        keyword_hits = sum(1 for keyword in entity.keywords if keyword and keyword in query_text)
+        alias_hits = sum(
+            1
+            for name in [entity.canonical_name, *entity.aliases, *entity.former_names]
+            if name and name in query_text
+        )
+        score = min(1.0, 0.55 * coverage + 0.25 * entity_coverage + 0.12 * keyword_hits + 0.08 * alias_hits)
+        if score < _MIN_DESCRIPTIVE_SCORE:
+            continue
+        candidates.append(
+            CandidateResult(
+                entity=entity,
+                score=round(score, 3),
+                matched_name=mention.surface_form,
+                match_source="descriptive_match",
+                alias_similarity=round(min(0.72, 0.45 + score), 3),
+                reasons=["descriptive_reference", "description_overlap_support"],
+            )
+        )
+    candidates.sort(key=lambda c: c.score, reverse=True)
+    return candidates[:top_k]
+
+
+def _mention_context_window(mention: MentionInput, context: str) -> str:
+    if not context:
+        return mention.surface_form
+    start = max(0, mention.start_offset - _DESCRIPTIVE_CONTEXT_RADIUS)
+    end = min(len(context), mention.end_offset + _DESCRIPTIVE_CONTEXT_RADIUS)
+    return context[start:end]
+
+
+def _entity_search_text(entity: Entity) -> str:
+    return " ".join(
+        [
+            entity.canonical_name,
+            *entity.aliases,
+            *entity.former_names,
+            entity.description,
+            *entity.keywords,
+        ]
+    )
+
+
+def _char_bigrams(text: str) -> set[str]:
+    normalized = normalize(text)
+    if len(normalized) < 2:
+        return {normalized} if normalized else set()
+    return {normalized[index:index + 2] for index in range(len(normalized) - 1)}
 
 
 def _query_texts(mention: MentionInput, context: str = "") -> list[str]:
