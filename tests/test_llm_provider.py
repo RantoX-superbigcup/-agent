@@ -66,3 +66,46 @@ def test_llm_provider_override_changes_priority(monkeypatch):
     assert provider is not None
     assert provider.provider == "dashscope"
     assert provider.api_key_env == "QWEN_API_KEY"
+
+
+def test_qwen_model_prefers_dashscope_key_when_multiple_keys_exist(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek")
+    monkeypatch.setenv("QWEN_API_KEY", "sk-qwen")
+
+    provider = resolve_llm_provider(preferred_model="qwen-plus")
+
+    assert provider is not None
+    assert provider.provider == "dashscope"
+    assert provider.api_key_env == "QWEN_API_KEY"
+    assert provider.model == "qwen-plus"
+    assert "dashscope.aliyuncs.com" in provider.base_url
+
+
+def test_qwen_model_is_not_sent_to_forced_deepseek_provider(monkeypatch):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("LLM_PROVIDER", "deepseek")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek")
+
+    provider = resolve_llm_provider(preferred_model="qwen-plus")
+
+    assert provider is not None
+    assert provider.provider == "deepseek"
+    assert provider.model == "deepseek-chat"
+    assert provider.model_env == "deepseek:default_model"
+
+
+def test_config_deepseek_ignores_incompatible_qwen_model(monkeypatch):
+    _clear_llm_env(monkeypatch)
+
+    provider = resolve_llm_provider(
+        config_api_key="sk-deepseek",
+        config_base_url="https://api.deepseek.com",
+        config_model="deepseek-v4-flash",
+        preferred_model="qwen-plus",
+    )
+
+    assert provider is not None
+    assert provider.provider == "config"
+    assert provider.model == "deepseek-v4-flash"
+    assert provider.model_env == "config.llm_model"

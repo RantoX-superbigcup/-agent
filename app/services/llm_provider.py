@@ -106,7 +106,7 @@ def resolve_llm_provider(
     """Resolve an OpenAI-compatible provider from env vars, with safe provider defaults."""
 
     provider_name = os.getenv("LLM_PROVIDER", "").strip().lower()
-    specs = _ordered_specs(provider_name)
+    specs = _ordered_specs(provider_name, preferred_model)
 
     for spec in specs:
         key_env, api_key = _first_env(spec.key_envs)
@@ -114,25 +114,38 @@ def resolve_llm_provider(
             continue
         base_env, base_url = _first_env(spec.base_url_envs)
         model_env, model = _first_env(spec.model_envs)
+        selected_model, selected_model_env = _select_model(
+            spec,
+            preferred_model=preferred_model,
+            configured_model=model,
+            configured_model_env=model_env,
+            configured_base_url=base_url,
+            configured_base_url_env=base_env,
+        )
         return LLMProviderConfig(
             provider=spec.name,
             api_key=api_key,
             api_key_env=key_env,
             base_url=base_url or spec.default_base_url,
             base_url_env=base_env or f"{spec.name}:default_base_url",
-            model=preferred_model or model or spec.default_model,
-            model_env="request.model" if preferred_model else (model_env or f"{spec.name}:default_model"),
+            model=selected_model,
+            model_env=selected_model_env,
         )
 
     if config_api_key:
+        selected_model, selected_model_env = _select_config_model(
+            preferred_model=preferred_model,
+            config_model=config_model,
+            config_base_url=config_base_url,
+        )
         return LLMProviderConfig(
             provider="config",
             api_key=config_api_key,
             api_key_env="config.llm_api_key",
             base_url=config_base_url or "https://api.deepseek.com",
             base_url_env="config.llm_base_url",
-            model=preferred_model or config_model or "deepseek-chat",
-            model_env="request.model" if preferred_model else "config.llm_model",
+            model=selected_model,
+            model_env=selected_model_env,
         )
     return None
 
@@ -144,8 +157,13 @@ def append_chat_completions_path(base_url: str) -> str:
     return url
 
 
-def _ordered_specs(provider_name: str) -> tuple[ProviderSpec, ...]:
+def _ordered_specs(provider_name: str, preferred_model: Optional[str] = None) -> tuple[ProviderSpec, ...]:
     if not provider_name:
+        hinted_provider = _infer_provider_from_model(preferred_model)
+        if hinted_provider:
+            selected = tuple(spec for spec in PROVIDER_SPECS if spec.name == hinted_provider)
+            rest = tuple(spec for spec in PROVIDER_SPECS if spec.name != hinted_provider)
+            return selected + rest
         return PROVIDER_SPECS
     selected = tuple(spec for spec in PROVIDER_SPECS if spec.name == provider_name)
     rest = tuple(spec for spec in PROVIDER_SPECS if spec.name != provider_name)
@@ -158,3 +176,89 @@ def _first_env(names: tuple[str, ...]) -> tuple[str, str]:
         if value:
             return name, value
     return "", ""
+
+
+def _select_model(
+    spec: ProviderSpec,
+    *,
+    preferred_model: Optional[str],
+    configured_model: str,
+    configured_model_env: str,
+    configured_base_url: str,
+    configured_base_url_env: str,
+) -> tuple[str, str]:
+    if _is_preferred_model_compatible(
+        spec,
+        preferred_model,
+        configured_base_url=configured_base_url,
+        configured_base_url_env=configured_base_url_env,
+    ):
+        return preferred_model.strip(), "request.model"  # type: ignore[union-attr]
+    return configured_model or spec.default_model, configured_model_env or f"{spec.name}:default_model"
+
+
+def _select_config_model(
+    *,
+    preferred_model: Optional[str],
+    config_model: str,
+    config_base_url: str,
+) -> tuple[str, str]:
+    if preferred_model and _base_url_supports_model_hint(config_base_url, _infer_provider_from_model(preferred_model)):
+        return preferred_model.strip(), "request.model"
+    return config_model or "deepseek-chat", "config.llm_model"
+
+
+def _is_preferred_model_compatible(
+    spec: ProviderSpec,
+    preferred_model: Optional[str],
+    *,
+    configured_base_url: str,
+    configured_base_url_env: str,
+) -> bool:
+    if not preferred_model or not preferred_model.strip():
+        return False
+    hinted_provider = _infer_provider_from_model(preferred_model)
+    if not hinted_provider:
+        return True
+    if spec.name == hinted_provider:
+        return True
+    if spec.name == "generic":
+        return bool(configured_base_url_env) and _base_url_supports_model_hint(configured_base_url, hinted_provider)
+    return False
+
+
+def _infer_provider_from_model(model: Optional[str]) -> str:
+    value = (model or "").strip().lower()
+    if not value:
+        return ""
+    if value.startswith(("qwen", "qwq")):
+        return "dashscope"
+    if "/" in value and "qwen" in value:
+        return "siliconflow"
+    if value.startswith("deepseek"):
+        return "deepseek"
+    if value.startswith(("gpt-", "o1", "o3", "o4")):
+        return "openai"
+    if value.startswith(("moonshot", "kimi")):
+        return "moonshot"
+    if value.startswith(("glm", "zhipu")):
+        return "zhipu"
+    if value.startswith(("doubao", "ep-")):
+        return "ark"
+    return ""
+
+
+def _base_url_supports_model_hint(base_url: str, hinted_provider: str) -> bool:
+    if not hinted_provider:
+        return True
+    value = (base_url or "").lower()
+    provider_markers = {
+        "dashscope": ("dashscope", "aliyuncs"),
+        "deepseek": ("deepseek",),
+        "openai": ("openai",),
+        "siliconflow": ("siliconflow",),
+        "moonshot": ("moonshot", "kimi"),
+        "zhipu": ("bigmodel", "zhipu", "glm"),
+        "ark": ("volces", "ark"),
+    }
+    return any(marker in value for marker in provider_markers.get(hinted_provider, (hinted_provider,)))
