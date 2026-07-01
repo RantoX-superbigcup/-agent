@@ -204,7 +204,7 @@ class LinkService:
             cands = state["candidates_by_id"].get(m.mention_id, [])
             rescored[m.mention_id] = sorted(
                 [rescore(c, m, context, self.alias_prior, weights) for c in cands],
-                key=lambda c: c.score, reverse=True,
+                key=candidate_mod.rank_key, reverse=True,
             )[:options.top_k]
             if rescored[m.mention_id]:
                 t = rescored[m.mention_id][0]

@@ -30,6 +30,12 @@ _EXACT_BOOST: dict[str, float] = {
     "alias_match": 0.20,
     "former_name_match": 0.15,
 }
+_TRUSTED_EXACT_RANK: dict[str, int] = {
+    "canonical_match": 3,
+    "alias_match": 2,
+    "former_name_match": 1,
+}
+_SURFACE_EXACT_REASON = "surface_form_exact_match"
 
 
 class CandidateResult:
@@ -84,7 +90,7 @@ def _merged_retrieve(
     """合并精确名称查找 + 向量语义检索的结果。"""
     # 1. 精确名称查找
     exact_candidates = _exact_retrieve(mention, context, index)
-    exact_ids = {c.entity.entity_id for c in exact_candidates}
+    exact_by_id = {c.entity.entity_id: c for c in exact_candidates}
 
     # 2. 向量检索（多取一些候选用作合并）
     vec_results = _vector_retrieve(mention, context, entities, max(top_k * 3, 30), embedder, vector_index)
@@ -95,12 +101,12 @@ def _merged_retrieve(
 
     for r in vec_results:
         eid = r.entity.entity_id
-        if eid in exact_ids and r.match_source != "similarity_match":
-            # 精确命中的实体 → boost 分数
-            boost = _EXACT_BOOST.get(r.match_source, 0.12)
-            floor = _EXACT_FLOOR.get(r.match_source, 0.85)
-            r.score = round(max(r.score + boost, floor), 3)
-        merged[eid] = r
+        exact_candidate = exact_by_id.get(eid)
+        if exact_candidate is not None:
+            _merge_vector_score_into_exact(exact_candidate, r)
+            merged[eid] = exact_candidate
+        else:
+            merged[eid] = r
 
     # 4. 精确命中但向量没召回的实体 → 直接插入
     for exact_candidate in exact_candidates:
@@ -116,8 +122,27 @@ def _merged_retrieve(
             if eid not in merged:
                 merged[eid] = c
 
-    result = sorted(merged.values(), key=lambda r: r.score, reverse=True)
+    result = sorted(merged.values(), key=rank_key, reverse=True)
     return result[:top_k]
+
+
+def _merge_vector_score_into_exact(exact_candidate: CandidateResult, vector_candidate: CandidateResult) -> None:
+    # Keep exact-name evidence intact; vector similarity should not downgrade alias_similarity.
+    boost = _EXACT_BOOST.get(exact_candidate.match_source, 0.12)
+    floor = _EXACT_FLOOR.get(exact_candidate.match_source, 0.85)
+    exact_candidate.score = round(max(exact_candidate.score, vector_candidate.score + boost, floor), 3)
+    exact_candidate.alias_similarity = 1.0
+    for reason in vector_candidate.reasons:
+        if reason not in exact_candidate.reasons:
+            exact_candidate.reasons.append(reason)
+
+
+def trusted_exact_rank(candidate: CandidateResult) -> int:
+    return _TRUSTED_EXACT_RANK.get(candidate.match_source, 0)
+
+
+def rank_key(candidate: CandidateResult) -> tuple[int, float]:
+    return trusted_exact_rank(candidate), candidate.score
 
 
 def _vector_retrieve(
@@ -175,6 +200,8 @@ def _exact_retrieve(mention: MentionInput, context: str, index: NameIndex) -> li
             score = _EXACT_FLOOR.get(source, 0.90)
             existing = by_id.get(entity.entity_id)
             if existing:
+                if not is_expansion and _SURFACE_EXACT_REASON not in existing.reasons:
+                    existing.reasons.append(_SURFACE_EXACT_REASON)
                 if is_expansion and "llm_alias_expansion" not in existing.reasons:
                     existing.reasons.append("llm_alias_expansion")
                 if is_contextual_expansion and "contextual_alias_expansion" not in existing.reasons:
@@ -193,6 +220,8 @@ def _exact_retrieve(mention: MentionInput, context: str, index: NameIndex) -> li
                 reasons.append("llm_alias_expansion")
             if is_contextual_expansion:
                 reasons.append("contextual_alias_expansion")
+            if not is_expansion:
+                reasons.append(_SURFACE_EXACT_REASON)
             candidate = CandidateResult(
                 entity=entity,
                 score=score,

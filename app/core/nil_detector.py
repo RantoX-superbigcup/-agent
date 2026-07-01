@@ -1,5 +1,5 @@
 from __future__ import annotations
-from app.core.candidate import CandidateResult
+from app.core.candidate import CandidateResult, trusted_exact_rank
 from app.models.request import LinkOptions
 from app.storage.index import normalize
 
@@ -33,6 +33,11 @@ def decide(
     if _is_strong_descriptive_reference(top, candidates):
         return "linked", top
 
+    if _has_trusted_exact_priority(top, candidates):
+        if "trusted_exact_priority_auto_accept" not in top.reasons:
+            top.reasons.append("trusted_exact_priority_auto_accept")
+        return "linked", top
+
     # 歧义检测
     if len(candidates) > 1 and (top.score - candidates[1].score) < options.ambiguity_margin:
         if _has_strong_auto_accept_evidence(top, top.score - candidates[1].score):
@@ -40,6 +45,15 @@ def decide(
         return "ambiguous", top
 
     return "linked", top
+
+
+def _has_trusted_exact_priority(top: CandidateResult, candidates: list[CandidateResult]) -> bool:
+    top_rank = trusted_exact_rank(top)
+    if top_rank <= 0 or top.score < 0.55:
+        return False
+    if len(candidates) < 2:
+        return True
+    return top_rank > trusted_exact_rank(candidates[1])
 
 
 def _has_strong_auto_accept_evidence(candidate: CandidateResult, margin: float) -> bool:
