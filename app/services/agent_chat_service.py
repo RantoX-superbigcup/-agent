@@ -238,6 +238,10 @@ class AgentChatService:
         selected_kb_id: str | None,
         selected_kb_version: str | None,
     ) -> AgentChatResponse | None:
+        explicit_link_payload = self._extract_explicit_link_payload(req.message)
+        if explicit_link_payload:
+            return self._run_local_link_request(req, selected_kb_id, selected_kb_version, explicit_link_payload)
+
         text = req.message.strip().lower()
         help_terms = ("怎么输入", "如何输入", "怎么用", "如何使用", "帮助", "help", "示例", "例子")
         upload_terms = ("上传知识库", "导入知识库", "上传文件", "导入文件")
@@ -276,6 +280,101 @@ class AgentChatService:
             )
 
         return None
+
+    def _extract_explicit_link_payload(self, message: str) -> dict[str, Any] | None:
+        matches = list(
+            re.finditer(
+                r"(?:^|[\n\r;；。])\s*"
+                r"(?:需要(?:识别|链接|消歧)的)?(?:实体|实体列表|mentions?|mention)"
+                r"\s*(?:[:：]|为|是|包括|包含|有|如下)\s*[:：]?\s*",
+                message,
+                re.IGNORECASE,
+            )
+        )
+        if not matches:
+            return None
+        marker = matches[-1]
+        content = self._strip_text_marker(message[: marker.start()])
+        mentions_text = message[marker.end():].strip()
+        if not content or not mentions_text:
+            return None
+        mentions = self._split_mentions(mentions_text)
+        if not mentions:
+            return None
+        return {
+            "text": {"content": content, "language": "zh"},
+            "mentions": mentions,
+        }
+
+    def _strip_text_marker(self, text: str) -> str:
+        text = text.strip().strip(";；")
+        matched = re.search(r"(?:^|[\n\r;；])\s*(?:文本|原文|句子|内容)\s*(?:[:：]|为|是)\s*", text)
+        if matched:
+            text = text[matched.end():]
+        return text.strip().strip(";；")
+
+    def _run_local_link_request(
+        self,
+        req: AgentChatRequest,
+        selected_kb_id: str | None,
+        selected_kb_version: str | None,
+        link_payload: dict[str, Any],
+    ) -> AgentChatResponse:
+        warnings = ["local_explicit_entities_parser"]
+        try:
+            link_request = self._build_link_request(
+                link_payload,
+                selected_kb_id,
+                selected_kb_version,
+                req,
+                warnings,
+            )
+        except AgentChatError as exc:
+            return AgentChatResponse(
+                status="error",
+                intent="link",
+                reply=exc.message,
+                selected_kb_id=selected_kb_id,
+                selected_kb_version=selected_kb_version,
+                selected_model=req.model,
+                warnings=warnings,
+            )
+
+        link_response = None
+        if req.run_workflow:
+            try:
+                link_response = self.link_service.link(link_request)
+            except ValueError as exc:
+                return AgentChatResponse(
+                    status="error",
+                    intent="link",
+                    reply=f"我已经本地生成了 LinkRequest，但 workflow 执行失败：{exc}",
+                    selected_kb_id=link_request.knowledge_base.kb_id,
+                    selected_kb_version=link_request.knowledge_base.kb_version,
+                    selected_model=req.model,
+                    link_request=link_request,
+                    warnings=warnings,
+                )
+
+        if link_response and link_response.summary:
+            reply = (
+                "已识别到你提供了明确的“实体”列表，已跳过大模型解析并直接执行实体链接："
+                f"共 {link_response.summary.total_mentions} 个 mention，"
+                f"linked={link_response.summary.linked_count}，nil={link_response.summary.nil_count}。"
+            )
+        else:
+            reply = "已识别到你提供了明确的“实体”列表，已跳过大模型解析并生成 LinkRequest JSON。"
+
+        return AgentChatResponse(
+            intent="link",
+            reply=reply,
+            selected_kb_id=link_request.knowledge_base.kb_id,
+            selected_kb_version=link_request.knowledge_base.kb_version,
+            selected_model=req.model,
+            link_request=link_request,
+            link_response=link_response,
+            warnings=warnings,
+        )
 
     def _build_messages(self, req: AgentChatRequest, selected_kb_id: str | None, selected_kb_version: str | None) -> list[dict[str, str]]:
         kbs = self._list_kbs_lightweight()[:20]
@@ -487,7 +586,10 @@ class AgentChatService:
             return {}
 
     def _split_mentions(self, text: str) -> list[str]:
-        return [part.strip() for part in re.split(r"[,;|/\s\u3001\uff0c\uff1b]+", text) if part.strip()]
+        parts = re.split(r"[,;|/\n\r\t\u3001\uff0c\uff1b]+", text)
+        if len(parts) == 1:
+            parts = re.split(r"\s+", text)
+        return [part.strip() for part in parts if part.strip()]
 
     def _strip_json_fence(self, content: str) -> str:
         content = content.strip()
