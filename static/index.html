@@ -366,31 +366,50 @@ function fillPreset() {
 }
 
 async function importKB() {
-  const kbId = document.getElementById('kb-id').value.trim();
   const box = document.getElementById('r-import');
-  if (!kbId) {
-    box.className = 'result-box err';
-    box.textContent = '知识库 ID 不能为空';
-    return;
-  }
-  let entities;
+  let parsed;
   try {
-    entities = JSON.parse(document.getElementById('kb-entities').value);
+    parsed = JSON.parse(document.getElementById('kb-entities').value);
   } catch (err) {
     box.className = 'result-box err';
     box.textContent = '实体列表 JSON 格式错误：' + err.message;
     return;
   }
-  const result = await api('POST', '/api/v1/knowledge-bases', {
-    kb_id: kbId,
-    kb_version: document.getElementById('kb-ver').value.trim() || 'v1',
-    description: document.getElementById('kb-desc').value.trim(),
-    entities,
-  });
+
+  const formKbId = document.getElementById('kb-id').value.trim();
+  const formKbVersion = document.getElementById('kb-ver').value.trim();
+  const formDescription = document.getElementById('kb-desc').value.trim();
+  const isPackage = parsed && !Array.isArray(parsed) && Array.isArray(parsed.entities);
+  const payload = isPackage
+    ? {
+        kb_id: formKbId || parsed.kb_id,
+        kb_version: formKbVersion || parsed.kb_version || 'v1',
+        description: formDescription || parsed.description || '',
+        entities: parsed.entities,
+      }
+    : {
+        kb_id: formKbId,
+        kb_version: formKbVersion || 'v1',
+        description: formDescription,
+        entities: parsed,
+      };
+
+  if (!payload.kb_id) {
+    box.className = 'result-box err';
+    box.textContent = '知识库 ID 不能为空：可以填写上方 ID，或粘贴包含 kb_id 的完整 KBPackage JSON';
+    return;
+  }
+  if (!Array.isArray(payload.entities)) {
+    box.className = 'result-box err';
+    box.textContent = '实体列表 JSON 格式错误：请粘贴实体数组，或包含 entities 数组的完整 KBPackage JSON';
+    return;
+  }
+
+  const result = await api('POST', '/api/v1/knowledge-bases', payload);
   showResult('r-import', result);
   if (result.ok) {
     await loadKBs();
-    useKB(kbId, document.getElementById('kb-ver').value.trim() || 'v1');
+    useKB(payload.kb_id, payload.kb_version || 'v1');
   }
 }
 

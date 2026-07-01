@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 from pydantic import BaseModel, Field, model_validator
 from app.models.enums import EntityType
 
@@ -27,6 +27,24 @@ class KBPackage(BaseModel):
     kb_version: str
     description: str = ""
     entities: list[Entity] = Field(min_length=1)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _unwrap_nested_package(cls, data: Any) -> Any:
+        """兼容误传成 {"entities": KBPackage} 的手动导入请求。"""
+        if not isinstance(data, dict):
+            return data
+        nested = data.get("entities")
+        if not isinstance(nested, dict) or not isinstance(nested.get("entities"), list):
+            return data
+
+        merged = dict(nested)
+        for key in ("kb_id", "kb_version", "description"):
+            outer_value = data.get(key)
+            if outer_value not in (None, ""):
+                merged[key] = outer_value
+        merged["entities"] = nested["entities"]
+        return merged
 
     @model_validator(mode="after")
     def _check_unique_ids(self) -> "KBPackage":

@@ -44,6 +44,25 @@ def test_import_kb_overwrite(client, kb_id):
     assert r.json()["status"] == "overwritten"
 
 
+def test_import_kb_accepts_nested_package_in_entities(client):
+    """兼容前端误把完整 KBPackage 塞进 entities 字段的手动导入请求。"""
+    r = client.post("/api/v1/knowledge-bases", json={
+        "kb_id": "nested-wrapper-kb",
+        "kb_version": "v1",
+        "description": "outer description",
+        "entities": {
+            "kb_id": "inner-kb",
+            "kb_version": "v1",
+            "description": "inner description",
+            "entities": _ENTITIES,
+        },
+    })
+
+    assert r.status_code == 201
+    assert r.json()["kb_id"] == "nested-wrapper-kb"
+    assert r.json()["entity_count"] == 1
+
+
 def test_import_kb_empty_entities(client):
     """entities 为空数组应被 Pydantic 拦截。"""
     r = client.post("/api/v1/knowledge-bases", json={
