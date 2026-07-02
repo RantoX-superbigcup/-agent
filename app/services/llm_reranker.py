@@ -10,7 +10,11 @@ from typing import Any
 from app.config import AppConfig
 from app.core import candidate as candidate_mod
 from app.models.request import LinkOptions, LinkRequest
-from app.services.llm_provider import append_chat_completions_path, resolve_llm_provider
+from app.services.llm_provider import (
+    SUPPORTED_API_KEY_ENV_NAMES,
+    append_chat_completions_path,
+    resolve_llm_provider,
+)
 
 logger = logging.getLogger("entity_link_agent")
 
@@ -28,6 +32,10 @@ class LLMReranker:
         self.config = config
         self.timeout_seconds = timeout_seconds
         self.max_cases = max_cases
+        self.last_diagnostics: dict[str, Any] = {
+            "status": "not_run",
+            "reason": "not_started",
+        }
 
     def rerank(
         self,
@@ -35,11 +43,14 @@ class LLMReranker:
         candidates_by_id: dict[str, list[candidate_mod.CandidateResult]],
         options: LinkOptions,
     ) -> dict[str, LLMRerankChoice]:
+        self._record("started", "building_cases")
         if not options.enable_llm_rerank:
+            self._record("disabled", "enable_llm_rerank_false")
             return {}
 
         cases = self._build_cases(request, candidates_by_id, options)
         if not cases:
+            self._record("skipped", "no_risky_candidates", case_count=0)
             return {}
 
         provider = resolve_llm_provider(
@@ -48,7 +59,13 @@ class LLMReranker:
             config_model=getattr(self.config, "llm_model", ""),
         )
         if not provider:
-            logger.info("  [llm_rerank] LLM API key not configured, skip model rerank")
+            self._record(
+                "skipped",
+                "provider_not_configured",
+                case_count=len(cases),
+                supported_api_key_envs=list(SUPPORTED_API_KEY_ENV_NAMES),
+            )
+            logger.warning("  [llm_rerank] provider_not_configured, skip model rerank")
             return {}
 
         payload = self._request_payload(request, cases)
@@ -79,16 +96,58 @@ class LLMReranker:
             parsed = json.loads(_strip_json_fence(content))
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
+            self._record(
+                "failed",
+                "http_error",
+                case_count=len(cases),
+                provider=provider.provider,
+                model=provider.model,
+                api_key_env=provider.api_key_env,
+                base_url=provider.base_url,
+                http_status=exc.code,
+                detail=detail[:500],
+            )
             logger.warning("  [llm_rerank] LLM API returned %s: %s", exc.code, detail[:500])
             return {}
         except Exception as exc:
+            self._record(
+                "failed",
+                "request_or_parse_error",
+                case_count=len(cases),
+                provider=provider.provider,
+                model=provider.model,
+                api_key_env=provider.api_key_env,
+                base_url=provider.base_url,
+                error_type=type(exc).__name__,
+                error=str(exc)[:500],
+            )
             logger.warning("  [llm_rerank] LLM rerank skipped: %s", exc)
             return {}
 
-        choices = self._parse_choices(parsed, candidates_by_id)
+        choices, parse_diagnostics = self._parse_choices_with_diagnostics(parsed, candidates_by_id)
+        self._record(
+            "accepted" if choices else "filtered",
+            "accepted_choices" if choices else "all_model_decisions_filtered",
+            case_count=len(cases),
+            provider=provider.provider,
+            model=provider.model,
+            api_key_env=provider.api_key_env,
+            base_url=provider.base_url,
+            accepted_count=len(choices),
+            parse=parse_diagnostics,
+        )
         if choices:
             logger.info("  [llm_rerank] accepted %d model rerank choice(s)", len(choices))
+        else:
+            logger.warning("  [llm_rerank] all model decisions filtered: %s", parse_diagnostics)
         return choices
+
+    def _record(self, status: str, reason: str, **extra: Any) -> None:
+        self.last_diagnostics = {
+            "status": status,
+            "reason": reason,
+            **extra,
+        }
 
     def _build_cases(
         self,
@@ -165,26 +224,50 @@ class LLMReranker:
         parsed: Any,
         candidates_by_id: dict[str, list[candidate_mod.CandidateResult]],
     ) -> dict[str, LLMRerankChoice]:
+        choices, _ = LLMReranker._parse_choices_with_diagnostics(parsed, candidates_by_id)
+        return choices
+
+    @staticmethod
+    def _parse_choices_with_diagnostics(
+        parsed: Any,
+        candidates_by_id: dict[str, list[candidate_mod.CandidateResult]],
+    ) -> tuple[dict[str, LLMRerankChoice], dict[str, Any]]:
         decisions = parsed.get("decisions") if isinstance(parsed, dict) else None
         if not isinstance(decisions, list):
-            return {}
+            return {}, {"total_decisions": 0, "accepted": 0, "skipped": {"invalid_decisions_format": 1}}
 
         result: dict[str, LLMRerankChoice] = {}
+        skipped: dict[str, int] = {}
+
+        def skip(reason: str) -> None:
+            skipped[reason] = skipped.get(reason, 0) + 1
+
         for item in decisions:
             if not isinstance(item, dict):
+                skip("non_object_decision")
                 continue
             mention_id = str(item.get("mention_id") or "").strip()
             entity_id = str(item.get("entity_id") or "").strip()
-            if not mention_id or not entity_id or entity_id.upper() == "NIL":
+            if not mention_id or not entity_id:
+                skip("missing_mention_or_entity_id")
                 continue
-            candidate_ids = {candidate.entity.entity_id for candidate in candidates_by_id.get(mention_id, [])}
+            if entity_id.upper() == "NIL":
+                skip("nil_decision")
+                continue
+            mention_candidates = candidates_by_id.get(mention_id, [])
+            if not mention_candidates:
+                skip("unknown_mention_id")
+                continue
+            candidate_ids = {candidate.entity.entity_id for candidate in mention_candidates}
             if entity_id not in candidate_ids:
+                skip("entity_id_not_in_candidates")
                 continue
             try:
                 confidence = float(item.get("confidence", 0.0))
             except (TypeError, ValueError):
                 confidence = 0.0
             if confidence < 0.55:
+                skip("confidence_below_0_55")
                 continue
             result[mention_id] = LLMRerankChoice(
                 mention_id=mention_id,
@@ -192,7 +275,11 @@ class LLMReranker:
                 confidence=max(0.0, min(1.0, confidence)),
                 reason=str(item.get("reason") or "").strip()[:160],
             )
-        return result
+        return result, {
+            "total_decisions": len(decisions),
+            "accepted": len(result),
+            "skipped": skipped,
+        }
 
 
 def _strip_json_fence(text: str) -> str:

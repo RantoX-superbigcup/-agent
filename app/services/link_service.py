@@ -46,6 +46,7 @@ class LinkState(TypedDict, total=False):
     results: list[LinkResult]
     coref_chains: list[CoreferenceChain]
     llm_rerank_count: int
+    llm_rerank_diagnostics: dict[str, Any]
     validation_error: Optional[str]
 
 
@@ -228,8 +229,9 @@ class LinkService:
         options = state.get("effective_options", req.options)
         candidates_by_id = state.get("candidates_by_id", {})
         choices = self.llm_reranker.rerank(req, candidates_by_id, options)
+        diagnostics = dict(getattr(self.llm_reranker, "last_diagnostics", {}) or {})
         if not choices:
-            return {"llm_rerank_count": 0}
+            return {"llm_rerank_count": 0, "llm_rerank_diagnostics": diagnostics}
 
         updated: dict[str, list[candidate_mod.CandidateResult]] = {}
         applied = 0
@@ -264,7 +266,8 @@ class LinkService:
                 choice.confidence,
             )
 
-        return {"candidates_by_id": updated, "llm_rerank_count": applied}
+        diagnostics["applied_count"] = applied
+        return {"candidates_by_id": updated, "llm_rerank_count": applied, "llm_rerank_diagnostics": diagnostics}
 
     def _resolve(self, state: LinkState) -> dict:
         req = state["request"]
@@ -382,6 +385,15 @@ class LinkService:
         opts = state.get("effective_options", request.options)
         profile = state.get("kb_profile")
         weights = state.get("score_weights", ScoreWeights())
+        llm_diagnostics = state.get("llm_rerank_diagnostics")
+        if llm_diagnostics is None:
+            candidates_by_id = state.get("candidates_by_id")
+            reason = (
+                "candidate_route_empty"
+                if candidates_by_id is not None and not any(candidates_by_id.values())
+                else "llm_rerank_node_not_reached"
+            )
+            llm_diagnostics = {"status": "not_run", "reason": reason}
         ambiguous = sum(1 for r in results if r.link_status == LinkStatus.ambiguous)
         review = sum(1 for r in results if self._needs_review(r, opts))
         return LinkResponse(
@@ -404,6 +416,9 @@ class LinkService:
                     "auto_calibrate": opts.auto_calibrate,
                     "enable_llm_rerank": opts.enable_llm_rerank,
                     "llm_rerank_count": state.get("llm_rerank_count", 0),
+                    "llm_rerank_status": llm_diagnostics.get("status"),
+                    "llm_rerank_reason": llm_diagnostics.get("reason"),
+                    "llm_rerank_diagnostics": llm_diagnostics,
                     "enable_nil": opts.enable_nil,
                     "enable_coreference": opts.enable_coreference,
                     "kb_profile": profile.to_dict() if profile else None,

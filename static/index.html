@@ -648,6 +648,7 @@ function renderLinkResultView() {
     llm: results.filter(isLLMReviewed).length,
   };
   const llmNames = results.filter(isLLMReviewed).map(item => item.surface_form).slice(0, 12);
+  const llmDiagnosticNote = renderLLMRerankDiagnosticNote(data.trace?.options_used?.llm_rerank_diagnostics);
   el.innerHTML = `
     <div class="result-tools">
       <div class="summary">
@@ -664,6 +665,7 @@ function renderLinkResultView() {
       </div>
     </div>
     ${counts.llm ? `<div class="review-note">大模型参与过 ${counts.llm} 个实体：${escapeHtml(llmNames.join('、'))}${counts.llm > llmNames.length ? ' 等' : ''}</div>` : ''}
+    ${llmDiagnosticNote}
     <div id="link-result-list"></div>
     ${data.coreference_chains?.length ? '<h2>共指链</h2>' + data.coreference_chains.map(c => `<div class="small"><span class="tag">${escapeHtml(c.chain_id)}</span>${c.mention_ids.map(escapeHtml).join(' -> ')} -> ${escapeHtml(c.entity_id)}</div>`).join('') : ''}
   `;
@@ -673,6 +675,21 @@ function renderLinkResultView() {
 function renderSummaryButton(filter, label, count) {
   const active = resultFilter === filter ? ' active' : '';
   return `<button class="summary-btn${active}" onclick="setResultFilter('${filter}')">${escapeHtml(label)}：<span class="count">${Number(count || 0)}</span></button>`;
+}
+
+function renderLLMRerankDiagnosticNote(diag) {
+  if (!diag || !diag.status) return '';
+  const status = String(diag.status || '');
+  const reason = String(diag.reason || '');
+  if (status === 'accepted' || (status === 'skipped' && reason === 'no_risky_candidates')) return '';
+  const extras = [];
+  if (diag.case_count !== undefined) extras.push(`case=${diag.case_count}`);
+  if (diag.accepted_count !== undefined) extras.push(`accepted=${diag.accepted_count}`);
+  if (diag.http_status !== undefined) extras.push(`http=${diag.http_status}`);
+  if (diag.api_key_env) extras.push(`key=${diag.api_key_env}`);
+  if (diag.model) extras.push(`model=${diag.model}`);
+  const detail = diag.detail || diag.error || (diag.parse ? JSON.stringify(diag.parse) : '');
+  return `<div class="review-note">大模型复核诊断：${escapeHtml(status)} / ${escapeHtml(reason)}${extras.length ? `（${escapeHtml(extras.join('，'))}）` : ''}${detail ? `<br><span class="small">${escapeHtml(detail)}</span>` : ''}</div>`;
 }
 
 function setResultFilter(filter) {
