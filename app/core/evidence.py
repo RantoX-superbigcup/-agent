@@ -45,6 +45,16 @@ def build_evidence(candidate: CandidateResult, context: str) -> list[EvidenceIte
                 evidence_type=EvidenceType.model_inference,
                 detail=f"模型/先验加权依据：{reason}",
             ))
+        elif reason == "llm_rerank_support":
+            items.append(EvidenceItem(
+                evidence_type=EvidenceType.model_inference,
+                detail="大模型复核在候选列表中选择该实体",
+            ))
+        elif reason == "llm_rerank_reason":
+            items.append(EvidenceItem(
+                evidence_type=EvidenceType.model_inference,
+                detail="大模型复核理由已用于重排",
+            ))
         elif reason == "contextual_alias_expansion":
             items.append(EvidenceItem(
                 evidence_type=EvidenceType.model_inference,

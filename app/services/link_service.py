@@ -27,6 +27,7 @@ from app.models.response import (
     CandidateItem, CoreferenceChain, EvidenceItem, EntityRef,
     LinkResponse, LinkResult, LinkSummary, LinkTrace,
 )
+from app.services.llm_reranker import LLMReranker
 from app.storage.index import NameIndex
 from app.storage.kb_store import KBStore
 from app.storage.vector_index import VectorIndex
@@ -44,15 +45,24 @@ class LinkState(TypedDict, total=False):
     candidates_by_id: dict[str, list[candidate_mod.CandidateResult]]
     results: list[LinkResult]
     coref_chains: list[CoreferenceChain]
+    llm_rerank_count: int
     validation_error: Optional[str]
 
 
 class LinkService:
-    def __init__(self, store: KBStore, config: AppConfig, alias_prior: Optional[AliasPrior] = None, embedder=None) -> None:
+    def __init__(
+        self,
+        store: KBStore,
+        config: AppConfig,
+        alias_prior: Optional[AliasPrior] = None,
+        embedder=None,
+        llm_reranker: Optional[LLMReranker] = None,
+    ) -> None:
         self.store = store
         self.config = config
         self.alias_prior = alias_prior
         self.embedder = embedder
+        self.llm_reranker = llm_reranker or LLMReranker(config)
         self.graph = self._build_graph()
 
     def link(self, request: LinkRequest) -> LinkResponse:
@@ -77,6 +87,7 @@ class LinkService:
         builder.add_node("generate_candidates", RunnableLambda(self._generate_candidates, name="generate_candidates"))
         builder.add_node("nil_fallback", RunnableLambda(self._nil_fallback, name="nil_fallback"))
         builder.add_node("rerank", RunnableLambda(self._rerank, name="rerank"))
+        builder.add_node("llm_rerank", RunnableLambda(self._llm_rerank, name="llm_rerank"))
         builder.add_node("resolve", RunnableLambda(self._resolve, name="resolve"))
         builder.add_node("coreference", RunnableLambda(self._coreference, name="coreference"))
         builder.add_node("human_review", RunnableLambda(self._human_review, name="human_review"))
@@ -85,7 +96,8 @@ class LinkService:
         builder.add_edge("load_kb", "generate_candidates")
         builder.add_conditional_edges("generate_candidates", self._route_candidates, {"has_candidates": "rerank", "empty": "nil_fallback"})
         builder.add_edge("nil_fallback", END)
-        builder.add_edge("rerank", "resolve")
+        builder.add_edge("rerank", "llm_rerank")
+        builder.add_edge("llm_rerank", "resolve")
         builder.add_edge("resolve", "coreference")
         builder.add_conditional_edges("coreference", self._review_route, {"auto_accept": END, "needs_review": "human_review"})
         builder.add_edge("human_review", END)
@@ -210,6 +222,49 @@ class LinkService:
                 t = rescored[m.mention_id][0]
                 logger.info("    mention=%s top=%.3f(%s)", m.mention_id, t.score, t.entity.canonical_name)
         return {"candidates_by_id": rescored}
+
+    def _llm_rerank(self, state: LinkState) -> dict:
+        req = state["request"]
+        options = state.get("effective_options", req.options)
+        candidates_by_id = state.get("candidates_by_id", {})
+        choices = self.llm_reranker.rerank(req, candidates_by_id, options)
+        if not choices:
+            return {"llm_rerank_count": 0}
+
+        updated: dict[str, list[candidate_mod.CandidateResult]] = {}
+        applied = 0
+        for mention_id, candidates in candidates_by_id.items():
+            choice = choices.get(mention_id)
+            if not choice:
+                updated[mention_id] = candidates
+                continue
+            selected = next((candidate for candidate in candidates if candidate.entity.entity_id == choice.entity_id), None)
+            if selected is None:
+                updated[mention_id] = candidates
+                continue
+
+            other_scores = [candidate.score for candidate in candidates if candidate.entity.entity_id != choice.entity_id]
+            second_score = max(other_scores) if other_scores else 0.0
+            min_score = max(
+                selected.score,
+                second_score + options.ambiguity_margin + 0.01,
+                options.nil_threshold + 0.02,
+            )
+            selected.score = round(min(1.0, min_score), 3)
+            if "llm_rerank_support" not in selected.reasons:
+                selected.reasons.append("llm_rerank_support")
+            if choice.reason and "llm_rerank_reason" not in selected.reasons:
+                selected.reasons.append("llm_rerank_reason")
+            updated[mention_id] = sorted(candidates, key=candidate_mod.rank_key, reverse=True)[:options.top_k]
+            applied += 1
+            logger.info(
+                "  [llm_rerank] mention=%s selected=%s confidence=%.3f",
+                mention_id,
+                selected.entity.canonical_name,
+                choice.confidence,
+            )
+
+        return {"candidates_by_id": updated, "llm_rerank_count": applied}
 
     def _resolve(self, state: LinkState) -> dict:
         req = state["request"]
@@ -347,6 +402,8 @@ class LinkService:
                     "nil_threshold": opts.nil_threshold,
                     "ambiguity_margin": opts.ambiguity_margin,
                     "auto_calibrate": opts.auto_calibrate,
+                    "enable_llm_rerank": opts.enable_llm_rerank,
+                    "llm_rerank_count": state.get("llm_rerank_count", 0),
                     "enable_nil": opts.enable_nil,
                     "enable_coreference": opts.enable_coreference,
                     "kb_profile": profile.to_dict() if profile else None,

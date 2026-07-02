@@ -39,11 +39,21 @@ button:disabled{background:#9aa6b2;cursor:not-allowed}
 .hidden{display:none}
 .file-line{border:1px dashed #b9c7d6;border-radius:8px;background:#fbfdff;padding:12px;margin-top:8px}
 .file-name{font-size:12px;color:#526174;margin-left:8px}
-.summary{display:flex;gap:16px;margin-bottom:14px}
-.summary span{background:#f8fafc;border:1px solid #e5ebf1;border-radius:8px;padding:8px 10px}
+.summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:0}
+.summary-btn{background:#f8fafc;color:#20242a;border:1px solid #dce6f1;border-radius:9px;padding:9px 12px;font-weight:700;box-shadow:0 2px 8px rgba(15,23,42,.04);transition:.16s ease}
+.summary-btn:hover{background:#eef6ff;border-color:#9cc7ff;color:#0b63ce;transform:translateY(-1px)}
+.summary-btn.active{background:#0b63ce;color:#fff;border-color:#0b63ce;box-shadow:0 8px 16px rgba(11,99,206,.18)}
+.summary-btn .count{font-size:16px;margin-left:4px}
+.result-tools{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.result-search{display:flex;gap:8px;align-items:center;flex:1 1 420px;max-width:560px;min-width:320px}
+.result-search input{flex:1 1 auto;min-width:220px}
+.search-clear{white-space:nowrap;flex:0 0 auto;min-width:64px;justify-content:center}
+.review-note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;margin-bottom:12px}
+.result-empty{padding:22px;text-align:center;color:#7b8794;border:1px dashed #cfd8e3;border-radius:8px;background:#fbfdff}
 .card{border:1px solid #e5ebf1;border-radius:9px;margin-bottom:10px;padding:12px;background:#fff}
 .status{font-size:12px;border-radius:999px;padding:3px 8px;font-weight:800}
 .linked{background:#dcfce7;color:#166534}.nil{background:#f1f5f9;color:#475569}.ambiguous{background:#fef3c7;color:#92400e}.error{background:#fee2e2;color:#991b1b}
+.llm-reviewed{background:#e0f2fe;color:#075985}.review{background:#fff7ed;color:#9a3412}
 .tag{display:inline-block;background:#e8f1ff;color:#0b63ce;border-radius:4px;padding:2px 6px;font-size:11px;margin:2px 4px 2px 0}
 .small{font-size:12px;color:#64748b}
 .chat-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
@@ -190,6 +200,10 @@ button:disabled{background:#9aa6b2;cursor:not-allowed}
 const API_BASE = window.location.port === '8000' ? '' : 'http://localhost:8000';
 let knownKBs = [];
 let agentHistory = [];
+let lastLinkData = null;
+let resultFilter = 'all';
+let resultSearch = '';
+let resultSearchComposing = false;
 
 function defaultLinkOptions() {
   return {
@@ -613,27 +627,138 @@ function renderLinkResult(result) {
     el.innerHTML = `<div class="result-box err">${escapeHtml(JSON.stringify(result.data, null, 2))}</div>`;
     return;
   }
-  const data = result.data;
+  lastLinkData = result.data;
+  resultFilter = 'all';
+  resultSearch = '';
+  renderLinkResultView();
+}
+
+function renderLinkResultView() {
+  const el = document.getElementById('lk-result');
+  const data = lastLinkData;
+  if (!data) return;
+  const results = data.results || [];
   const summary = data.summary || {};
+  const counts = {
+    all: summary.total_mentions ?? results.length,
+    linked: summary.linked_count ?? results.filter(item => item.link_status === 'linked').length,
+    nil: summary.nil_count ?? results.filter(item => item.link_status === 'nil').length,
+    ambiguous: summary.ambiguous_count ?? results.filter(item => item.link_status === 'ambiguous').length,
+    review: summary.review_count ?? results.filter(isReviewRequired).length,
+    llm: results.filter(isLLMReviewed).length,
+  };
+  const llmNames = results.filter(isLLMReviewed).map(item => item.surface_form).slice(0, 12);
   el.innerHTML = `
-    <div class="summary">
-      <span>mention：<b>${summary.total_mentions ?? data.results.length}</b></span>
-      <span>linked：<b>${summary.linked_count ?? 0}</b></span>
-      <span>nil：<b>${summary.nil_count ?? 0}</b></span>
-      <span>ambiguous：<b>${summary.ambiguous_count ?? 0}</b></span>
-      <span>review：<b>${summary.review_count ?? 0}</b></span>
+    <div class="result-tools">
+      <div class="summary">
+        ${renderSummaryButton('all', 'mention', counts.all)}
+        ${renderSummaryButton('linked', 'linked', counts.linked)}
+        ${renderSummaryButton('nil', 'nil', counts.nil)}
+        ${renderSummaryButton('ambiguous', 'ambiguous', counts.ambiguous)}
+        ${renderSummaryButton('review', 'review', counts.review)}
+        ${renderSummaryButton('llm', '大模型参与', counts.llm)}
+      </div>
+      <div class="result-search">
+        <input id="result-search-input" value="${escapeAttr(resultSearch)}" oncompositionstart="startResultSearchComposition()" oncompositionend="endResultSearchComposition(this.value)" oninput="setResultSearch(this.value)" placeholder="搜索 mention、标准实体或实体ID">
+        <button class="btn-light search-clear" onclick="clearResultSearch()">清空</button>
+      </div>
     </div>
-    ${data.results.map(renderResultCard).join('')}
+    ${counts.llm ? `<div class="review-note">大模型参与过 ${counts.llm} 个实体：${escapeHtml(llmNames.join('、'))}${counts.llm > llmNames.length ? ' 等' : ''}</div>` : ''}
+    <div id="link-result-list"></div>
     ${data.coreference_chains?.length ? '<h2>共指链</h2>' + data.coreference_chains.map(c => `<div class="small"><span class="tag">${escapeHtml(c.chain_id)}</span>${c.mention_ids.map(escapeHtml).join(' -> ')} -> ${escapeHtml(c.entity_id)}</div>`).join('') : ''}
   `;
+  renderLinkResultItems();
+}
+
+function renderSummaryButton(filter, label, count) {
+  const active = resultFilter === filter ? ' active' : '';
+  return `<button class="summary-btn${active}" onclick="setResultFilter('${filter}')">${escapeHtml(label)}：<span class="count">${Number(count || 0)}</span></button>`;
+}
+
+function setResultFilter(filter) {
+  resultFilter = filter;
+  renderLinkResultView();
+}
+
+function setResultSearch(value) {
+  resultSearch = value || '';
+  if (!resultSearchComposing) renderLinkResultItems();
+}
+
+function startResultSearchComposition() {
+  resultSearchComposing = true;
+}
+
+function endResultSearchComposition(value) {
+  resultSearchComposing = false;
+  resultSearch = value || '';
+  renderLinkResultItems();
+}
+
+function clearResultSearch() {
+  resultSearch = '';
+  const input = document.getElementById('result-search-input');
+  if (input) input.value = '';
+  renderLinkResultItems();
+}
+
+function renderLinkResultItems() {
+  const list = document.getElementById('link-result-list');
+  if (!list || !lastLinkData) return;
+  const results = lastLinkData.results || [];
+  const filtered = results.filter(item => matchesResultFilter(item) && matchesResultSearch(item));
+  list.innerHTML = filtered.length
+    ? filtered.map(renderResultCard).join('')
+    : '<div class="result-empty">当前筛选条件下没有匹配实体。</div>';
+}
+
+function matchesResultFilter(item) {
+  if (resultFilter === 'all') return true;
+  if (resultFilter === 'review') return isReviewRequired(item);
+  if (resultFilter === 'llm') return isLLMReviewed(item);
+  return item.link_status === resultFilter;
+}
+
+function matchesResultSearch(item) {
+  const q = resultSearch.trim().toLowerCase();
+  if (!q) return true;
+  const fields = [
+    item.mention_id,
+    item.surface_form,
+    item.link_status,
+    item.entity?.entity_id,
+    item.entity?.canonical_name,
+    ...(item.candidates || []).flatMap(c => [c.entity_id, c.canonical_name]),
+  ];
+  return fields.some(value => String(value || '').toLowerCase().includes(q));
+}
+
+function isLLMReviewed(item) {
+  return (item.evidence || []).some(e => {
+    const text = `${e.evidence_type || ''} ${e.detail || ''}`;
+    return text.includes('大模型复核') || text.includes('llm_rerank') || text.includes('llm_alias_expansion');
+  });
+}
+
+function isReviewRequired(item) {
+  const threshold = Number(lastLinkData?.trace?.options_used?.nil_threshold ?? 0.6);
+  return item.link_status === 'ambiguous'
+    || (item.link_status === 'nil' && (item.candidates || []).length > 0)
+    || Boolean(item.entity && Number(item.confidence || 0) < threshold)
+    || (item.evidence || []).some(e => String(e.detail || '').includes('human_review_required'));
 }
 
 function renderResultCard(item) {
+  const badges = [
+    isLLMReviewed(item) ? '<span class="status llm-reviewed">大模型参与</span>' : '',
+    isReviewRequired(item) ? '<span class="status review">需复核</span>' : '',
+    `<span class="status ${escapeHtml(item.link_status)}">${escapeHtml(item.link_status)}</span>`,
+  ].filter(Boolean).join(' ');
   return `
     <div class="card">
       <div class="row" style="justify-content:space-between">
         <div><b>${escapeHtml(item.surface_form)}</b> <span class="small">${escapeHtml(item.mention_id)}</span></div>
-        <span class="status ${escapeHtml(item.link_status)}">${escapeHtml(item.link_status)}</span>
+        <div class="row">${badges}</div>
       </div>
       ${item.entity ? `<div style="margin-top:8px">标准实体：<b>${escapeHtml(item.entity.canonical_name)}</b> <span class="small">${escapeHtml(item.entity.entity_id)}</span></div>` : ''}
       <div class="small" style="margin-top:6px">置信度：${Number(item.confidence || 0).toFixed(3)}</div>

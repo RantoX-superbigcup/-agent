@@ -259,7 +259,7 @@ def _fuzzy_retrieve(
                 if score > best_score:
                     best_score = score
                     best_name = name
-                    best_source = _match_source(name, entity)
+                    best_source = _match_source(name, entity) if query == norm_name else "similarity_match"
                     best_is_expansion = normalize(query_text) != normalize(mention.surface_form)
                     best_is_contextual_expansion = _is_contextual_alias(
                         mention.surface_form,

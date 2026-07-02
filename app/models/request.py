@@ -27,6 +27,7 @@ class LinkOptions(BaseModel):
     nil_threshold: float = 0.6
     ambiguity_margin: float = 0.08
     auto_calibrate: bool = True
+    enable_llm_rerank: bool = True
     enable_nil: bool = True
     enable_coreference: bool = True
     return_candidates: bool = True

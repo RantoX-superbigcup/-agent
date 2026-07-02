@@ -6,6 +6,7 @@ from app.models.entity import Entity
 from app.models.enums import EntityType, LinkStatus
 from app.models.request import LinkRequest
 from app.services.link_service import LinkService
+from app.services.llm_reranker import LLMRerankChoice
 from app.storage.kb_store import KBStore
 
 
@@ -14,6 +15,23 @@ def _service(tmp_path, entities: list[Entity]) -> LinkService:
     store.import_full("score-kb", "v1", "scoring regression kb", entities)
     config = SimpleNamespace(coreference_terms=set(), index_dir=None)
     return LinkService(store, config)
+
+
+class _FakeLLMReranker:
+    def __init__(self, entity_id: str) -> None:
+        self.entity_id = entity_id
+
+    def rerank(self, request, candidates_by_id, options):
+        if "m1" not in candidates_by_id:
+            return {}
+        return {
+            "m1": LLMRerankChoice(
+                mention_id="m1",
+                entity_id=self.entity_id,
+                confidence=0.92,
+                reason="上下文说明该简称对应候选实体",
+            )
+        }
 
 
 def test_llm_alias_expansion_beats_misleading_surface_alias(tmp_path):
@@ -62,6 +80,51 @@ def test_llm_alias_expansion_beats_misleading_surface_alias(tmp_path):
     assert result.entity is not None
     assert result.entity.entity_id == "E_ANGLEE"
     assert any(e.detail.endswith("llm_alias_expansion") for e in result.evidence)
+
+
+def test_llm_rerank_can_confirm_ambiguous_company_alias(tmp_path):
+    service = _service(
+        tmp_path,
+        [
+            Entity(
+                entity_id="E_HUANENG",
+                canonical_name="中国华能集团有限公司",
+                entity_type=EntityType.ORG,
+                aliases=["华能集团", "华能"],
+                description="中国发电集团，拥有火电、水电、风电等能源资产。",
+                keywords=["发电", "风电", "水电"],
+            ),
+            Entity(
+                entity_id="E_GUONENG",
+                canonical_name="国家能源投资集团有限责任公司",
+                entity_type=EntityType.ORG,
+                aliases=["国能集团", "国能"],
+                former_names=["神华集团有限责任公司"],
+                description="由神华集团整合而来，覆盖煤炭、火电、风电等业务。",
+                keywords=["神华集团", "煤炭", "火电", "风电"],
+            ),
+        ],
+    )
+    service.llm_reranker = _FakeLLMReranker("E_GUONENG")
+    request = LinkRequest(
+        request_id="score-llm-rerank-company",
+        text={"content": "神华集团早年以煤炭开采为核心业务，现在火电和风电资产规模扩张。", "language": "zh"},
+        mentions=[
+            {"mention_id": "m1", "surface_form": "神华集团", "start_offset": 0, "end_offset": 4}
+        ],
+        knowledge_base={"kb_id": "score-kb", "kb_version": "v1"},
+        options={"top_k": 5, "nil_threshold": 0.6, "ambiguity_margin": 0.08},
+    )
+
+    response = service.link(request)
+
+    result = response.results[0]
+    assert result.link_status == LinkStatus.linked
+    assert result.entity is not None
+    assert result.entity.entity_id == "E_GUONENG"
+    assert any("大模型复核" in evidence.detail for evidence in result.evidence)
+    assert response.trace is not None
+    assert response.trace.options_used["llm_rerank_count"] == 1
 
 
 def test_weak_llm_alias_expansion_requires_review(tmp_path):

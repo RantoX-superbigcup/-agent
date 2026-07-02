@@ -13,6 +13,7 @@ from pydantic import ValidationError
 from app.config import AppConfig
 from app.models.agent import AgentChatRequest, AgentChatResponse
 from app.models.request import LinkRequest
+from app.models.response import LinkResponse, LinkResult
 from app.services.llm_provider import (
     LLMProviderConfig,
     SUPPORTED_API_KEY_ENV_NAMES,
@@ -168,12 +169,13 @@ class AgentChatService:
                 )
 
         if link_response and link_response.summary:
-            reply = (
-                reply
-                or f"已将你的输入转成 LinkRequest 并执行实体链接："
-                f"共 {link_response.summary.total_mentions} 个 mention，"
-                f"linked={link_response.summary.linked_count}，nil={link_response.summary.nil_count}。"
+            wants_detail = self._wants_workflow_detail(req.message)
+            generated_reply = (
+                self._build_workflow_process_reply(link_response, local_parser=False)
+                if wants_detail
+                else self._build_link_completion_reply(link_response)
             )
+            reply = generated_reply if wants_detail else (reply or generated_reply)
         else:
             reply = reply or "已将你的输入转成 LinkRequest JSON。"
 
@@ -358,12 +360,15 @@ class AgentChatService:
 
         if link_response and link_response.summary:
             reply = (
-                "已识别到你提供了明确的“实体”列表，已跳过大模型解析并直接执行实体链接："
-                f"共 {link_response.summary.total_mentions} 个 mention，"
-                f"linked={link_response.summary.linked_count}，nil={link_response.summary.nil_count}。"
+                self._build_workflow_process_reply(link_response, local_parser=True)
+                if self._wants_workflow_detail(req.message)
+                else self._build_link_completion_reply(link_response)
             )
         else:
-            reply = "已识别到你提供了明确的“实体”列表，已跳过大模型解析并生成 LinkRequest JSON。"
+            reply = (
+                "已根据明确的实体列表本地生成 LinkRequest JSON；"
+                "本步未调用前置大模型解析，尚未执行 workflow。"
+            )
 
         return AgentChatResponse(
             intent="link",
@@ -375,6 +380,140 @@ class AgentChatService:
             link_response=link_response,
             warnings=warnings,
         )
+
+    def _wants_workflow_detail(self, message: str) -> bool:
+        text = message.lower()
+        detail_terms = (
+            "详细",
+            "过程",
+            "流程",
+            "工作流",
+            "workflow",
+            "节点",
+            "每个实体",
+            "各个实体",
+            "实体做的操作",
+            "做的操作",
+            "怎么处理",
+            "如何处理",
+            "怎么链接",
+            "如何链接",
+            "为什么",
+            "原因",
+            "解释",
+            "说明",
+        )
+        return any(term in text for term in detail_terms)
+
+    def _build_link_completion_reply(self, link_response: LinkResponse) -> str:
+        summary = link_response.summary
+        if not summary:
+            return "实体链接已完成，结果已显示在右侧。"
+        trace_options = link_response.trace.options_used if link_response.trace else {}
+        llm_rerank_count = int(trace_options.get("llm_rerank_count") or 0)
+        parts = [
+            (
+                f"实体链接已完成：共 {summary.total_mentions} 个 mention，"
+                f"linked={summary.linked_count}，ambiguous={summary.ambiguous_count}，"
+                f"nil={summary.nil_count}，review={summary.review_count}。"
+            )
+        ]
+        if llm_rerank_count:
+            parts.append(f"大模型复核参与了 {llm_rerank_count} 个实体，可在右侧点击“大模型参与”查看。")
+        elif summary.review_count:
+            parts.append("右侧可点击 review 或 ambiguous 查看需要人工确认的实体。")
+        else:
+            parts.append("详细候选、证据和筛选按钮都在右侧结果区。")
+        return "".join(parts)
+
+    def _build_workflow_process_reply(self, link_response: LinkResponse, *, local_parser: bool) -> str:
+        summary = link_response.summary
+        trace_options = link_response.trace.options_used if link_response.trace else {}
+        llm_rerank_count = int(trace_options.get("llm_rerank_count") or 0)
+        nil_count = summary.nil_count if summary else 0
+        review_count = summary.review_count if summary else 0
+        ambiguous_count = summary.ambiguous_count if summary else 0
+        coref_count = sum(1 for result in link_response.results if result.coreference)
+
+        lines = [
+            "这轮我按你的要求展开说明：",
+            (
+                "前置解析使用本地“文本/实体”格式解析器，未让大模型重新抽取 mention；"
+                if local_parser
+                else "前置解析先由大模型判断这是实体链接任务，并生成 LinkRequest；"
+            ),
+            (
+                f"随后进入 LangGraph 链接链路，完成候选召回、重排、NIL 判断、"
+                f"共指处理和复核标记。总计 mention={summary.total_mentions}，"
+                f"linked={summary.linked_count}，ambiguous={ambiguous_count}，"
+                f"nil={nil_count}，review={review_count}。"
+            ),
+        ]
+        if llm_rerank_count:
+            lines.append(f"候选分数接近或语义风险较高时，大模型复核参与了 {llm_rerank_count} 个实体，并把确认结果写入 evidence。")
+        else:
+            lines.append("本轮没有触发候选级大模型复核，主要依赖精确别名、上下文关键词、相似度和置信度阈值完成。")
+        if coref_count:
+            lines.append(f"共指模块额外处理了 {coref_count} 个回指 mention。")
+        if review_count:
+            lines.append(f"有 {review_count} 个结果被标记为需要人工复核，通常是低置信或候选过近。")
+        lines.extend(["", "各实体的关键动作如下："])
+        for result in link_response.results:
+            lines.append(self._format_result_process_line(result))
+        return "\n".join(lines)
+
+    def _format_result_process_line(self, result: LinkResult) -> str:
+        if result.entity:
+            target = f"{result.entity.canonical_name}({result.entity.entity_id})"
+        else:
+            target = "-"
+        operations = self._summarize_result_operations(result)
+        return (
+            f"- {result.surface_form} {result.mention_id}: "
+            f"{result.link_status.value} -> {target}，"
+            f"置信度={result.confidence:.3f}；操作：{operations}"
+        )
+
+    def _summarize_result_operations(self, result: LinkResult) -> str:
+        ops: list[str] = []
+        for evidence in result.evidence:
+            detail = evidence.detail
+            if evidence.evidence_type.value == "canonical_match":
+                ops.append("标准名精确命中")
+            elif evidence.evidence_type.value == "alias_match":
+                ops.append("别名精确命中")
+            elif evidence.evidence_type.value == "former_name_match":
+                ops.append("曾用名命中")
+            elif evidence.evidence_type.value == "similarity_match":
+                ops.append("相似度召回")
+            elif evidence.evidence_type.value == "context_match":
+                ops.append("上下文关键词支持")
+            elif evidence.evidence_type.value == "type_match":
+                ops.append("实体类型一致")
+            elif evidence.evidence_type.value == "coreference":
+                ops.append("共指回链")
+            elif evidence.evidence_type.value == "model_inference":
+                if "大模型复核" in detail:
+                    ops.append("大模型候选复核")
+                elif "human_review_required" in detail:
+                    ops.append("低置信/歧义，标记人工复核")
+                elif "llm_alias_expansion" in detail:
+                    ops.append("候选别名扩展")
+                elif "alias_prior_support" in detail:
+                    ops.append("别名先验支持")
+                elif "同名重复实体" in detail:
+                    ops.append("同名候选去噪")
+                else:
+                    ops.append("模型/规则推断")
+        if result.coreference:
+            ops.append(f"共指来源 {result.coreference.resolved_from}")
+        if result.link_status.value == "nil":
+            ops.append("无可靠库内实体，输出 NIL")
+        if not ops and result.candidates:
+            ops.append("候选召回后按置信度排序")
+        if not ops:
+            ops.append("未获得有效候选")
+        return " -> ".join(dict.fromkeys(ops))
 
     def _build_messages(self, req: AgentChatRequest, selected_kb_id: str | None, selected_kb_version: str | None) -> list[dict[str, str]]:
         kbs = self._list_kbs_lightweight()[:20]
