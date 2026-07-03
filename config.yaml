@@ -25,3 +25,4 @@ embedding:
   device: "auto"
   index_dir: "data/vector_index"
   top_k_retrieve: 20
+  semantic_min_score: 0.55

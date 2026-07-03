@@ -133,6 +133,8 @@ class LinkService:
                     context=req.text.content,
                     embedder=self.embedder,
                     vector_index=state.get("vector_index"),
+                    vector_top_k=self.config.top_k_retrieve,
+                    semantic_min_score=self.config.semantic_min_score,
                 )
                 result[m.mention_id] = cands
                 if cands:

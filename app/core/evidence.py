@@ -18,15 +18,15 @@ def build_evidence(candidate: CandidateResult, context: str) -> list[EvidenceIte
             evidence_type=EvidenceType.alias_match,
             detail=f"surface_form 命中别名：{candidate.matched_name}",
         ))
-    elif source == "former_name_match":
+    elif source == "short_name_match":
         items.append(EvidenceItem(
-            evidence_type=EvidenceType.former_name_match,
-            detail=f"surface_form 命中曾用名：{candidate.matched_name}",
+            evidence_type=EvidenceType.short_name_match,
+            detail=f"surface_form 命中简称：{candidate.matched_name}",
         ))
-    else:
+    elif source == "semantic_match":
         items.append(EvidenceItem(
-            evidence_type=EvidenceType.similarity_match,
-            detail=f"字符相似度命中：{candidate.matched_name}，score={candidate.score}",
+            evidence_type=EvidenceType.semantic_match,
+            detail=f"语义向量召回：{candidate.matched_name}，score={candidate.score}",
         ))
     entity = candidate.entity
     kw_hits = [kw for kw in entity.keywords if kw and kw in context]

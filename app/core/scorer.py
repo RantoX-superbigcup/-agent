@@ -43,8 +43,8 @@ def _description_overlap(context: str, entity: Entity) -> float:
 _SCORE_WEIGHTS = {
     "canonical_match": (0.85, 0.15),
     "alias_match": (0.82, 0.18),
-    "former_name_match": (0.80, 0.20),
-    "similarity_match": (0.55, 0.45),
+    "short_name_match": (0.80, 0.20),
+    "semantic_match": (0.55, 0.45),
 }
 
 
@@ -59,8 +59,12 @@ def rescore(
 
     # 上下文匹配分
     hits = _keyword_hits(context, entity.keywords)
-    ctx_score = min(1.0, len(hits) / max(1, min(len(entity.keywords), 4))) if entity.keywords else 0.0
-    ctx_score = max(ctx_score, _description_overlap(context, entity))
+    keyword_score = min(1.0, len(hits) / max(1, min(len(entity.keywords), 4))) if entity.keywords else 0.0
+    desc_overlap = _description_overlap(context, entity)
+    ctx_score = max(keyword_score, desc_overlap)
+    candidate.keyword_hits = hits
+    candidate.description_overlap = round(desc_overlap, 3)
+    candidate.context_score = round(ctx_score, 3)
 
     # 按命中方式选权重
     vw, cw = _SCORE_WEIGHTS.get(source, (0.55, 0.45))
@@ -68,6 +72,6 @@ def rescore(
     # 先验概率加分
     prior_bonus = 0.08 * (alias_prior.score(mention.surface_form, entity.entity_id) if alias_prior else 0.0)
 
-    final = min(1.0, vw * candidate.score + cw * ctx_score + prior_bonus)
+    final = min(1.0, vw * candidate.recall_score + cw * ctx_score + prior_bonus)
     candidate.score = round(final, 3)
     return candidate

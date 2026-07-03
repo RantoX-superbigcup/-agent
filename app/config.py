@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_log_level: str = "info"
     kb_dir: str = "data/knowledge_bases"
+    deepseek_api_key: str = ""
+    deepseek_base_url: str = ""
+    deepseek_model: str = ""
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
 
@@ -29,6 +32,7 @@ class AppConfig:
         self.embedding_device: str = emb.get("device", "cuda")
         self.index_dir: Path = Path(emb.get("index_dir", "data/vector_index"))
         self.top_k_retrieve: int = emb.get("top_k_retrieve", 20)
+        self.semantic_min_score: float = emb.get("semantic_min_score", 0.55)
 
 
 @lru_cache(maxsize=1)

@@ -1,4 +1,3 @@
-from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 from app.models.enums import EntityType
 
@@ -8,8 +7,8 @@ class Entity(BaseModel):
     canonical_name: str
     entity_type: EntityType
     aliases: list[str] = Field(default_factory=list)
-    former_names: list[str] = Field(default_factory=list)
-    description: str = ""
+    short_names: list[str] = Field(default_factory=list)
+    description: str = Field(min_length=1)
     parent_ids: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
 

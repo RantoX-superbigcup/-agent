@@ -72,8 +72,8 @@ button{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:no
     <label>知识库 ID</label><input id="kb-id" placeholder="energy-v1">
     <label>版本</label><input id="kb-ver" value="v1">
     <label>描述</label><input id="kb-desc" placeholder="能源行业实体库">
-    <label>实体列表（JSON 数组，含 entity_id / canonical_name / entity_type / aliases / description / keywords）</label>
-    <textarea id="kb-entities" rows="12" placeholder='[{"entity_id":"E001","canonical_name":"...","entity_type":"ORG","aliases":["..."],"former_names":[],"description":"...","keywords":["..."]}]'></textarea>
+    <label>实体列表（JSON 数组，含 entity_id / canonical_name / entity_type / aliases / short_names / description / keywords）</label>
+    <textarea id="kb-entities" rows="12" placeholder='[{"entity_id":"E001","canonical_name":"...","entity_type":"ORG","aliases":["..."],"short_names":["..."],"description":"...","keywords":["..."]}]'></textarea>
     <div class="hint">同名 kb_id 再次导入将覆盖已有数据</div>
     <br>
     <button class="btn-primary" onclick="importKB()">📦 导入知识库</button>
@@ -143,16 +143,16 @@ function fillPreset() {
   document.getElementById('kb-ver').value = 'v1';
   document.getElementById('kb-desc').value = '中国企业实体库（演示用精简版，完整120条见 tests/fixtures/cn_enterprises_kb.json）';
   document.getElementById('kb-entities').value = JSON.stringify([
-    {"entity_id":"E001","canonical_name":"国家电网有限公司","entity_type":"ORG","aliases":["国家电网","国网","SGCC"],"former_names":["国家电力公司"],"description":"中国规模最大的公用事业企业，负责全国大部分地区的电力输送与销售。","parent_ids":[],"keywords":["特高压","输电","电网","国有企业","电力"]},
-    {"entity_id":"E016","canonical_name":"华为技术有限公司","entity_type":"ORG","aliases":["华为","Huawei"],"former_names":[],"description":"全球领先的ICT基础设施和智能终端提供商。","parent_ids":[],"keywords":["5G","通信设备","智能手机","芯片","云计算","鸿蒙"]},
-    {"entity_id":"E018","canonical_name":"腾讯控股有限公司","entity_type":"ORG","aliases":["腾讯","Tencent"],"former_names":["深圳市腾讯计算机系统有限公司"],"description":"中国最大的互联网综合服务提供商。","parent_ids":[],"keywords":["社交","游戏","微信","QQ","云服务"]},
-    {"entity_id":"E019","canonical_name":"阿里巴巴集团控股有限公司","entity_type":"ORG","aliases":["阿里巴巴","阿里","Alibaba"],"former_names":["阿里巴巴网络技术有限公司"],"description":"全球最大的零售商务公司。","parent_ids":[],"keywords":["电商","云计算","淘宝","天猫","支付宝"]},
-    {"entity_id":"E036","canonical_name":"中国工商银行股份有限公司","entity_type":"ORG","aliases":["工商银行","工行","ICBC"],"former_names":["中国工商银行"],"description":"中国最大的商业银行。","parent_ids":[],"keywords":["银行","金融","信贷","零售银行"]},
-    {"entity_id":"E042","canonical_name":"中国平安保险（集团）股份有限公司","entity_type":"ORG","aliases":["中国平安","平安","Ping An"],"former_names":["平安保险公司"],"description":"中国最大的综合金融服务集团。","parent_ids":[],"keywords":["保险","银行","金融科技","健康管理"]},
-    {"entity_id":"E014","canonical_name":"宁德时代新能源科技股份有限公司","entity_type":"ORG","aliases":["宁德时代","CATL"],"former_names":[],"description":"全球领先的动力电池及储能系统研发制造企业。","parent_ids":[],"keywords":["动力电池","锂电池","储能","三元锂"]},
-    {"entity_id":"E060","canonical_name":"长城汽车股份有限公司","entity_type":"ORG","aliases":["长城汽车","长城","GWM"],"former_names":["长城汽车制造厂"],"description":"中国最大的SUV和皮卡制造商。","parent_ids":[],"keywords":["SUV","皮卡","哈弗","坦克","新能源"]},
-    {"entity_id":"E096","canonical_name":"贵州茅台酒股份有限公司","entity_type":"ORG","aliases":["贵州茅台","茅台","Moutai"],"former_names":["茅台酒厂"],"description":"中国最著名的高端白酒企业。","parent_ids":[],"keywords":["白酒","酱香","飞天茅台"]},
-    {"entity_id":"E104","canonical_name":"中国移动通信集团有限公司","entity_type":"ORG","aliases":["中国移动","移动","China Mobile"],"former_names":["中国电信（香港）有限公司"],"description":"中国最大的电信运营商。","parent_ids":[],"keywords":["通信","5G","宽带","物联网"]}
+    {"entity_id":"E001","canonical_name":"国家电网有限公司","entity_type":"ORG","aliases":["国家电网","国家电力公司"],"short_names":["国网","SGCC"],"description":"中国规模最大的公用事业企业，负责全国大部分地区的电力输送与销售。","parent_ids":[],"keywords":["特高压","输电","电网","国有企业","电力"]},
+    {"entity_id":"E016","canonical_name":"华为技术有限公司","entity_type":"ORG","aliases":["Huawei"],"short_names":["华为"],"description":"全球领先的ICT基础设施和智能终端提供商。","parent_ids":[],"keywords":["5G","通信设备","智能手机","芯片","云计算","鸿蒙"]},
+    {"entity_id":"E018","canonical_name":"腾讯控股有限公司","entity_type":"ORG","aliases":["Tencent","深圳市腾讯计算机系统有限公司"],"short_names":["腾讯"],"description":"中国最大的互联网综合服务提供商。","parent_ids":[],"keywords":["社交","游戏","微信","QQ","云服务"]},
+    {"entity_id":"E019","canonical_name":"阿里巴巴集团控股有限公司","entity_type":"ORG","aliases":["Alibaba","阿里巴巴网络技术有限公司"],"short_names":["阿里巴巴","阿里"],"description":"全球最大的零售商务公司。","parent_ids":[],"keywords":["电商","云计算","淘宝","天猫","支付宝"]},
+    {"entity_id":"E036","canonical_name":"中国工商银行股份有限公司","entity_type":"ORG","aliases":["中国工商银行"],"short_names":["工商银行","工行","ICBC"],"description":"中国最大的商业银行。","parent_ids":[],"keywords":["银行","金融","信贷","零售银行"]},
+    {"entity_id":"E042","canonical_name":"中国平安保险（集团）股份有限公司","entity_type":"ORG","aliases":["平安保险公司","Ping An"],"short_names":["中国平安","平安"],"description":"中国最大的综合金融服务集团。","parent_ids":[],"keywords":["保险","银行","金融科技","健康管理"]},
+    {"entity_id":"E014","canonical_name":"宁德时代新能源科技股份有限公司","entity_type":"ORG","aliases":[],"short_names":["宁德时代","CATL"],"description":"全球领先的动力电池及储能系统研发制造企业。","parent_ids":[],"keywords":["动力电池","锂电池","储能","三元锂"]},
+    {"entity_id":"E060","canonical_name":"长城汽车股份有限公司","entity_type":"ORG","aliases":["长城汽车制造厂"],"short_names":["长城汽车","长城","GWM"],"description":"中国最大的SUV和皮卡制造商。","parent_ids":[],"keywords":["SUV","皮卡","哈弗","坦克","新能源"]},
+    {"entity_id":"E096","canonical_name":"贵州茅台酒股份有限公司","entity_type":"ORG","aliases":["茅台酒厂","Moutai"],"short_names":["贵州茅台","茅台"],"description":"中国最著名的高端白酒企业。","parent_ids":[],"keywords":["白酒","酱香","飞天茅台"]},
+    {"entity_id":"E104","canonical_name":"中国移动通信集团有限公司","entity_type":"ORG","aliases":["中国电信（香港）有限公司","China Mobile"],"short_names":["中国移动","移动"],"description":"中国最大的电信运营商。","parent_ids":[],"keywords":["通信","5G","宽带","物联网"]}
   ], null, 2);
 }
 

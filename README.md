@@ -54,6 +54,7 @@ docker-compose up
 | `embedding.model_name` | BAAI/bge-small-zh-v1.5 | 嵌入模型路径 |
 | `embedding.device` | auto | 推理设备（auto 自动检测 / cuda / cpu） |
 | `embedding.index_dir` | data/vector_index | FAISS 索引存储路径 |
+| `embedding.semantic_min_score` | 0.55 | 语义向量召回最低原始内积分 |
 
 ## 项目依赖
 
@@ -92,7 +93,7 @@ entity_link_agent/
 │   │   ├── kb_service.py         # 知识库管理业务逻辑
 │   │   └── link_service.py       # 实体链接主流程（LangGraph 编排）
 │   ├── core/                     # 核心能力层（每文件一个能力，互相独立）
-│   │   ├── candidate.py          # 多源候选召回（精确名称 + 向量 + 模糊）
+│   │   ├── candidate.py          # 多源候选召回（精确名称 + 向量）
 │   │   ├── scorer.py             # 分档评分（按 match_source 选权重）
 │   │   ├── nil_detector.py       # NIL 判定（精确命中豁免）
 │   │   ├── coreference.py        # 共指消解（触发词前置处理）
@@ -117,9 +118,8 @@ entity_link_agent/
 │       ├── link_coref.json        # 共指消解测试
 │       ├── link_nil.json          # NIL 检测测试
 │       ├── link_disambig.json     # 消歧测试
-│       ├── link_former_name.json  # 曾用名匹配测试
+│       ├── link_short_name.json   # 简称匹配测试
 │       ├── link_full.json         # 综合多类型测试
-│       ├── link_fuzzy.json        # 模糊匹配（调节 nil_threshold）
 │       ├── link_threshold.json    # 阈值边界测试
 │       ├── link_semantic.json     # 纯语义匹配测试
 │       ├── link_context_disambig.json
@@ -177,7 +177,7 @@ POST /api/v1/entity-link
 └───────┬──────────┘
         │
 ┌───────▼──────────┐
-│ 3. candidates    │  多源候选召回（精确名称 → 向量语义 → 模糊匹配）
+│ 3. candidates    │  多源候选召回（唯一精确命中则直接返回，否则补充向量语义）
 │                  │  触发词跳过候选，走共指消解
 └───────┬──────────┘
         │
@@ -185,12 +185,12 @@ POST /api/v1/entity-link
 │ 4. rerank        │  按 match_source 分档评分：
 │                  │    canonical    → 0.85·向量 + 0.15·上下文
 │                  │    alias        → 0.82·向量 + 0.18·上下文
-│                  │    former_name  → 0.80·向量 + 0.20·上下文
+│                  │    short_name   → 0.80·向量 + 0.20·上下文
 │                  │    similarity   → 0.55·向量 + 0.45·上下文
 └───────┬──────────┘
         │
 ┌───────▼──────────┐
-│ 5. resolve       │  NIL 判定：精确命中（canonical/alias/former）豁免
+│ 5. resolve       │  NIL 判定：精确命中（canonical/alias/short_name）豁免
 │                  │  相似度命中按 nil_threshold 阈值判定
 └───────┬──────────┘
         │
@@ -207,9 +207,8 @@ POST /api/v1/entity-link
 
 ```
 retrieve(mention)
-    ├── ① NameIndex.lookup()  → 精确命中 → score ≥ 0.88
-    ├── ② FAISS.search()      → 向量相似 → score 0.5~0.85
-    └── ③ SequenceMatcher     → 模糊匹配 → score 0.35~0.9
+    ├── ① NameIndex.lookup_exact()  → canonical / alias / short_name 分源精确命中
+    └── ② FAISS.search()            → description + keywords 语义召回（score ≥ 0.55）
               │
               ▼
          合并去重，精确命中优先
@@ -221,13 +220,13 @@ retrieve(mention)
 |---------|:------:|:-------:|:------:|:------:|
 | canonical_match | 0.85 | 0.15 | ✅ | 0.95 |
 | alias_match | 0.82 | 0.18 | ✅ | 0.92 |
-| former_name_match | 0.80 | 0.20 | ✅ | 0.88 |
-| similarity_match | 0.55 | 0.45 | ❌ | — |
+| short_name_match | 0.80 | 0.20 | ✅ | 0.88 |
+| semantic_match | 0.55 | 0.45 | ❌ | — |
 
 ### 关键设计决策
 
 1. **共指前置** — 触发词在候选召回前拦截，不走向量检索，避免误链
-2. **精确命中不判 NIL** — canonical/alias/former_name 直接 linked，不过阈值
+2. **精确命中不判 NIL** — canonical/alias/short_name 直接 linked，不过阈值
 3. **缺失文件容错** — `ccks2019_alias_prior.json` 不存在时先验概率为 0，不影响运行
 4. **向量索引按需构建** — 导入时失效旧索引，首次链接时自动重建
 
@@ -265,7 +264,7 @@ Invoke-RestMethod -Method Post -Uri "http://localhost:8000/api/v1/entity-link" `
 
 ```powershell
 # 严格模式 — 只保留高置信度链接
-$body = (Get-Content tests/fixtures/link_fuzzy.json -Raw -Encoding UTF8) `
+$body = (Get-Content tests/fixtures/link_semantic.json -Raw -Encoding UTF8) `
   -replace '"nil_threshold": 0.6', '"nil_threshold": 0.80'
 Invoke-RestMethod ... -Body $body
 

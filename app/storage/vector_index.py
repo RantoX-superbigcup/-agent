@@ -3,6 +3,8 @@ import json
 from pathlib import Path
 import numpy as np
 
+_SCHEMA_VERSION = "profile-description-keywords-v1"
+
 
 class VectorIndex:
     """FAISS-backed per-KB vector index."""
@@ -26,16 +28,22 @@ class VectorIndex:
         index = faiss.IndexFlatIP(dim)
         index.add(vectors.astype(np.float32))
         faiss.write_index(index, str(self._index_path()))
-        self._meta_path().write_text(json.dumps(entity_ids), encoding="utf-8")
+        self._meta_path().write_text(
+            json.dumps({"schema_version": _SCHEMA_VERSION, "entity_ids": entity_ids}, ensure_ascii=False),
+            encoding="utf-8",
+        )
         self._index = index
         self._entity_ids = entity_ids
 
     def load(self) -> bool:
-        if not self._index_path().exists():
+        if not self._index_path().exists() or not self._meta_path().exists():
+            return False
+        payload = json.loads(self._meta_path().read_text(encoding="utf-8"))
+        if not isinstance(payload, dict) or payload.get("schema_version") != _SCHEMA_VERSION:
             return False
         import faiss
         self._index = faiss.read_index(str(self._index_path()))
-        self._entity_ids = json.loads(self._meta_path().read_text(encoding="utf-8"))
+        self._entity_ids = payload["entity_ids"]
         return True
 
     def search(self, query_vec: np.ndarray, top_k: int) -> list[tuple[str, float]]:

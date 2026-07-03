@@ -3,7 +3,7 @@ from app.core.candidate import CandidateResult
 from app.models.request import LinkOptions
 
 # 精确命中豁免 NIL 检测
-_NIL_EXEMPT = {"canonical_match", "alias_match", "former_name_match"}
+_NIL_EXEMPT = {"canonical_match", "alias_match", "short_name_match"}
 
 
 def decide(

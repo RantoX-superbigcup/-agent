@@ -6,8 +6,8 @@ _ENTITIES = [
         "entity_id": "E001",
         "canonical_name": "国网江苏省电力有限公司",
         "entity_type": "ORG",
-        "aliases": ["国网江苏电力", "江苏电力"],
-        "former_names": [],
+        "aliases": ["国网江苏电力"],
+        "short_names": ["江苏电力"],
         "description": "国家电网有限公司在江苏地区的省级电力公司。",
         "keywords": ["江苏", "南京", "电力"],
     }
@@ -54,6 +54,34 @@ def test_import_kb_empty_entities(client):
     assert r.status_code == 422  # Pydantic validation error
 
 
+def test_import_kb_missing_entity_description(client):
+    """实体缺少 description 应被拒绝。"""
+    r = client.post("/api/v1/knowledge-bases", json={
+        "kb_id": "missing-desc-kb",
+        "kb_version": "v1",
+        "description": "",
+        "entities": [
+            {"entity_id": "E001", "canonical_name": "A", "entity_type": "ORG",
+             "aliases": [], "short_names": []},
+        ],
+    })
+    assert r.status_code == 422
+
+
+def test_import_kb_empty_entity_description(client):
+    """实体 description 不能为空字符串。"""
+    r = client.post("/api/v1/knowledge-bases", json={
+        "kb_id": "empty-desc-kb",
+        "kb_version": "v1",
+        "description": "",
+        "entities": [
+            {"entity_id": "E001", "canonical_name": "A", "entity_type": "ORG",
+             "aliases": [], "short_names": [], "description": ""},
+        ],
+    })
+    assert r.status_code == 422
+
+
 def test_import_kb_duplicate_ids(client):
     """同批次 entity_id 重复应拒绝。"""
     r = client.post("/api/v1/knowledge-bases", json={
@@ -62,9 +90,9 @@ def test_import_kb_duplicate_ids(client):
         "description": "",
         "entities": [
             {"entity_id": "E001", "canonical_name": "A", "entity_type": "ORG",
-             "aliases": [], "former_names": [], "description": ""},
+             "aliases": [], "short_names": [], "description": "实体 A 描述"},
             {"entity_id": "E001", "canonical_name": "B", "entity_type": "ORG",
-             "aliases": [], "former_names": [], "description": ""},
+             "aliases": [], "short_names": [], "description": "实体 B 描述"},
         ],
     })
     assert r.status_code == 422  # Pydantic model_validator
@@ -96,6 +124,21 @@ def test_entity_link_alias(client, kb_id):
     result = r.json()["results"][0]
     assert result["link_status"] == "linked"
     assert result["entity"]["entity_id"] == "E001"
+
+
+def test_entity_link_short_name(client, kb_id):
+    r = client.post("/api/v1/entity-link", json={
+        "schema_version": "v1",
+        "request_id": "req-short-name",
+        "text": {"content": "江苏电力完成南京供电保障。"},
+        "mentions": [{"mention_id": "m1", "surface_form": "江苏电力", "start_offset": 0, "end_offset": 4}],
+        "knowledge_base": {"kb_id": kb_id, "kb_version": "v1"},
+    })
+    assert r.status_code == 200
+    result = r.json()["results"][0]
+    assert result["link_status"] == "linked"
+    assert result["entity"]["entity_id"] == "E001"
+    assert result["evidence"][0]["evidence_type"] == "short_name_match"
 
 
 def test_entity_link_nil(client, kb_id):

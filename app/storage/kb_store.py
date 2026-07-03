@@ -95,7 +95,7 @@ class KBStore:
         from app.storage.vector_index import VectorIndex
         logger.info("正在构建向量索引 kb=%s entities=%d...", kb_id, len(entities))
         texts = [
-            f"{e.canonical_name} {' '.join(e.aliases)} {' '.join(e.former_names)} {e.description}"
+            f"{e.description} {' '.join(e.keywords)}".strip()
             for e in entities
         ]
         vectors = self.embedder.encode(texts)
