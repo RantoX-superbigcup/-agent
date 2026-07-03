@@ -56,6 +56,11 @@ button:disabled{background:#9aa6b2;cursor:not-allowed}
 .llm-reviewed{background:#e0f2fe;color:#075985}.review{background:#fff7ed;color:#9a3412}
 .tag{display:inline-block;background:#e8f1ff;color:#0b63ce;border-radius:4px;padding:2px 6px;font-size:11px;margin:2px 4px 2px 0}
 .small{font-size:12px;color:#64748b}
+.card-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.json-toggle{background:#eef4ff;color:#0b63ce;border:1px solid #bfdbfe;padding:6px 10px;font-size:12px}
+.json-toggle:hover{background:#dcebff}
+.entity-json{margin-top:8px;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:10px;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:Consolas,"Courier New",monospace;font-size:12px;line-height:1.55}
+.response-json{margin-bottom:12px;max-height:520px}
 .chat-toolbar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .chat-box{height:230px;overflow:auto;background:linear-gradient(180deg,#f8fbff,#fff);border:1px solid #dde8f4;border-radius:10px;padding:12px}
 .chat-msg{max-width:92%;padding:9px 11px;border-radius:10px;margin-bottom:9px;line-height:1.55;white-space:pre-wrap}
@@ -204,6 +209,8 @@ let lastLinkData = null;
 let resultFilter = 'all';
 let resultSearch = '';
 let resultSearchComposing = false;
+let expandedResultJson = new Set();
+let fullResponseJsonExpanded = false;
 
 function defaultLinkOptions() {
   return {
@@ -630,6 +637,8 @@ function renderLinkResult(result) {
   lastLinkData = result.data;
   resultFilter = 'all';
   resultSearch = '';
+  expandedResultJson = new Set();
+  fullResponseJsonExpanded = false;
   renderLinkResultView();
 }
 
@@ -664,6 +673,10 @@ function renderLinkResultView() {
         <button class="btn-light search-clear" onclick="clearResultSearch()">清空</button>
       </div>
     </div>
+    <div class="card-actions">
+      <button class="json-toggle" onclick="toggleFullResponseJson()">${fullResponseJsonExpanded ? '收起完整 Response JSON' : '查看完整 Response JSON'}</button>
+    </div>
+    ${fullResponseJsonExpanded ? `<pre class="entity-json response-json">${escapeHtml(JSON.stringify(data, null, 2))}</pre>` : ''}
     ${counts.llm ? `<div class="review-note">大模型参与过 ${counts.llm} 个实体：${escapeHtml(llmNames.join('、'))}${counts.llm > llmNames.length ? ' 等' : ''}</div>` : ''}
     ${llmDiagnosticNote}
     <div id="link-result-list"></div>
@@ -675,6 +688,11 @@ function renderLinkResultView() {
 function renderSummaryButton(filter, label, count) {
   const active = resultFilter === filter ? ' active' : '';
   return `<button class="summary-btn${active}" onclick="setResultFilter('${filter}')">${escapeHtml(label)}：<span class="count">${Number(count || 0)}</span></button>`;
+}
+
+function toggleFullResponseJson() {
+  fullResponseJsonExpanded = !fullResponseJsonExpanded;
+  renderLinkResultView();
 }
 
 function renderLLMRerankDiagnosticNote(diag) {
@@ -729,6 +747,16 @@ function renderLinkResultItems() {
     : '<div class="result-empty">当前筛选条件下没有匹配实体。</div>';
 }
 
+function toggleResultJson(encodedKey) {
+  const key = decodeURIComponent(encodedKey);
+  if (expandedResultJson.has(key)) {
+    expandedResultJson.delete(key);
+  } else {
+    expandedResultJson.add(key);
+  }
+  renderLinkResultItems();
+}
+
 function matchesResultFilter(item) {
   if (resultFilter === 'all') return true;
   if (resultFilter === 'review') return isReviewRequired(item);
@@ -766,6 +794,8 @@ function isReviewRequired(item) {
 }
 
 function renderResultCard(item) {
+  const jsonKey = resultJsonKey(item);
+  const jsonExpanded = expandedResultJson.has(jsonKey);
   const badges = [
     isLLMReviewed(item) ? '<span class="status llm-reviewed">大模型参与</span>' : '',
     isReviewRequired(item) ? '<span class="status review">需复核</span>' : '',
@@ -782,8 +812,16 @@ function renderResultCard(item) {
       ${item.coreference ? `<div class="small">共指来源：${escapeHtml(item.coreference.resolved_from)}</div>` : ''}
       ${item.evidence?.length ? `<div style="margin-top:8px">${item.evidence.map(e => `<span class="tag">${escapeHtml(e.evidence_type)}</span><span class="small">${escapeHtml(e.detail)}</span><br>`).join('')}</div>` : ''}
       ${item.candidates?.length ? `<div style="margin-top:8px">${item.candidates.map(c => `<div class="small">${escapeHtml(c.canonical_name)} (${escapeHtml(c.entity_id)}) score=${Number(c.score).toFixed(3)}</div>`).join('')}</div>` : ''}
+      <div class="card-actions">
+        <button class="json-toggle" onclick="toggleResultJson('${escapeAttr(encodeURIComponent(jsonKey))}')">${jsonExpanded ? '收起 Response JSON' : '查看 Response JSON'}</button>
+      </div>
+      ${jsonExpanded ? `<pre class="entity-json">${escapeHtml(JSON.stringify(item, null, 2))}</pre>` : ''}
     </div>
   `;
+}
+
+function resultJsonKey(item) {
+  return `${item.mention_id || ''}::${item.surface_form || ''}`;
 }
 
 function escapeHtml(value) {
