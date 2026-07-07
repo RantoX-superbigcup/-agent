@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -75,80 +75,80 @@ button:disabled{background:#9aa6b2;cursor:not-allowed}
 <body>
 <header>
   <h1>Entity Link Agent</h1>
-  <span class="badge">璇鹃10</span>
-  <span id="health" class="badge" style="margin-left:auto">妫€鏌ヤ腑...</span>
+  <span class="badge">课题10</span>
+  <span id="health" class="badge" style="margin-left:auto">检查中...</span>
 </header>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('kb')">鐭ヨ瘑搴撶鐞?/div>
-  <div class="tab" onclick="switchTab('link')">瀹炰綋閾炬帴</div>
+  <div class="tab active" onclick="switchTab('kb')">知识库管理</div>
+  <div class="tab" onclick="switchTab('link')">实体链接</div>
 </div>
 
 <main id="pane-kb" class="pane active">
   <section class="panel left">
-    <h2>浠庢湰鍦版枃浠跺鍏?<button class="btn-light" onclick="resetUploadForm()">娓呯┖</button></h2>
+    <h2>从本地文件导入 <button class="btn-light" onclick="resetUploadForm()">清空</button></h2>
     <div class="file-line">
       <input id="upload-file" class="hidden" type="file" onchange="onFileSelected()">
-      <label for="upload-file" class="file-button">閫夋嫨鏂囦欢</label>
-      <span id="upload-file-name" class="file-name">灏氭湭閫夋嫨鏂囦欢</span>
+      <label for="upload-file" class="file-button">选择文件</label>
+      <span id="upload-file-name" class="file-name">尚未选择文件</span>
     </div>
 
-    <label>鏉ユ簮绫诲瀷</label>
+    <label>来源类型</label>
     <select id="upload-source">
-      <option value="auto">鑷姩璇嗗埆</option>
+      <option value="auto">自动识别</option>
       <option value="ccks_kb_data">CCKS kb_data</option>
       <option value="kb_package">KBPackage JSON</option>
-      <option value="entities">瀹炰綋鏁扮粍 JSON/JSONL</option>
+      <option value="entities">实体数组 JSON/JSONL</option>
       <option value="pdf">PDF</option>
-      <option value="text">鏂囨湰/Markdown</option>
+      <option value="text">文本/Markdown</option>
     </select>
 
-    <label>瀵煎叆鍚庣殑鐭ヨ瘑搴?ID锛堝彲閫夛級</label>
-    <input id="upload-kb-id" placeholder="渚嬪锛歝cks2019-v1锛涚暀绌哄垯鎸夋枃浠跺悕鐢熸垚">
+    <label>导入后的知识库 ID（可选）</label>
+    <input id="upload-kb-id" placeholder="例如：ccks2019-v1；留空则按文件名生成">
 
-    <label>鐭ヨ瘑搴撶増鏈?/label>
+    <label>知识库版本</label>
     <input id="upload-kb-version" value="v1">
 
     <label style="display:flex;gap:8px;align-items:center;font-weight:500">
-      <input id="upload-use-llm" type="checkbox" style="width:auto"> PDF/鏂囨湰浣跨敤澶фā鍨嬫娊鍙栧疄浣?
+      <input id="upload-use-llm" type="checkbox" style="width:auto"> PDF/文本使用大模型抽取实体
     </label>
-    <div class="hint">缁撴瀯鍖?JSON銆丣SONL銆丆CKS kb_data 鍙洿鎺ヨ浆鎹€侾DF 鎴栫函鏂囨湰娌℃湁鍥哄畾缁撴瀯锛屽缓璁厤缃ぇ妯″瀷 API 鍚庡嬀閫夊ぇ妯″瀷鎶藉彇銆?/div>
+    <div class="hint">结构化 JSON、JSONL、CCKS kb_data 可直接转换。PDF 或纯文本没有固定结构，建议配置大模型 API 后勾选大模型抽取。</div>
     <br>
-    <button id="upload-btn" onclick="importUploadKB()">涓婁紶骞跺鍏ョ煡璇嗗簱</button>
+    <button id="upload-btn" onclick="importUploadKB()">上传并导入知识库</button>
     <div id="r-upload"></div>
 
     <hr style="border:none;border-top:1px solid #edf1f5;margin:18px 0">
 
-    <h2>鎵嬪姩 JSON 瀵煎叆 <button class="btn-light" onclick="fillPreset()">濉叆绀轰緥</button></h2>
-    <label>鐭ヨ瘑搴?ID</label><input id="kb-id" placeholder="cn-enterprises-v1">
-    <label>鐗堟湰</label><input id="kb-ver" value="v1">
-    <label>鎻忚堪</label><input id="kb-desc" placeholder="鐭ヨ瘑搴撴弿杩?>
-    <label>瀹炰綋鍒楄〃 JSON 鏁扮粍</label>
+    <h2>手动 JSON 导入 <button class="btn-light" onclick="fillPreset()">填入示例</button></h2>
+    <label>知识库 ID</label><input id="kb-id" placeholder="cn-enterprises-v1">
+    <label>版本</label><input id="kb-ver" value="v1">
+    <label>描述</label><input id="kb-desc" placeholder="知识库描述">
+    <label>实体列表 JSON 数组</label>
     <textarea id="kb-entities" rows="8" placeholder='[{"entity_id":"E001","canonical_name":"...","entity_type":"ORG","aliases":[],"former_names":[],"description":"","keywords":[]}]'></textarea>
-    <div class="hint">鍚屽悕 kb_id 鍐嶆瀵煎叆浼氳鐩栧凡鏈夌煡璇嗗簱銆?/div>
+    <div class="hint">同名 kb_id 再次导入会覆盖已有知识库。</div>
     <br>
-    <button onclick="importKB()">瀵煎叆 JSON 鐭ヨ瘑搴?/button>
+    <button onclick="importKB()">导入 JSON 知识库</button>
     <div id="r-import"></div>
   </section>
 
   <section class="panel right">
-    <h2>鐭ヨ瘑搴撳垪琛?<button class="btn-light" onclick="loadKBs()">鍒锋柊</button></h2>
-    <div id="kb-list"><div class="empty">鏆傛棤鐭ヨ瘑搴?/div></div>
+    <h2>知识库列表 <button class="btn-light" onclick="loadKBs()">刷新</button></h2>
+    <div id="kb-list"><div class="empty">暂无知识库</div></div>
   </section>
 </main>
 
 <main id="pane-link" class="pane">
   <section class="panel left">
-    <h2>Agent 瀵硅瘽 <button class="btn-light" onclick="fillAgentExample()">濉叆绀轰緥</button></h2>
+    <h2>Agent 对话 <button class="btn-light" onclick="fillAgentExample()">填入示例</button></h2>
     <div class="chat-toolbar">
       <div>
-        <label>褰撳墠鐭ヨ瘑搴?/label>
+        <label>当前知识库</label>
         <select id="agent-kb"></select>
       </div>
       <div>
-        <label>澶фā鍨?/label>
+        <label>大模型</label>
         <select id="agent-model">
-          <option value="auto">鑷姩閫夋嫨</option>
+          <option value="auto">自动选择</option>
           <option value="deepseek-chat">deepseek-chat</option>
           <option value="deepseek-reasoner">deepseek-reasoner</option>
           <option value="qwen-plus">qwen-plus</option>
@@ -160,44 +160,44 @@ button:disabled{background:#9aa6b2;cursor:not-allowed}
       </div>
     </div>
     <div id="agent-chat-log" class="chat-box">
-      <div class="chat-msg chat-agent">鎴戞槸瀹炰綋閾炬帴 Agent銆備綘鍙互鐩存帴杈撳叆鏂囨湰鍜屽疄浣擄紝渚嬪锛氭枃鏈細鏉庡婕旂殑銆婃柇鑳屽北銆嬪緢鍔ㄤ汉锛涘疄浣擄細鏉庡婕旓紝鏂儗灞便€?/div>
+      <div class="chat-msg chat-agent">我是实体链接 Agent。你可以直接输入文本和实体，例如：文本：李导演的《断背山》很动人；实体：李导演，断背山。</div>
     </div>
-    <label>鑷劧璇█杈撳叆</label>
-    <textarea id="agent-message" rows="4" placeholder="渚嬪锛氭潕瀵兼紨鐨勩€婃柇鑳屽北銆嬬湡鏄护浜哄姩浜猴紝鍏朵腑瀹炰綋鏄潕瀵兼紨鍜屾柇鑳屽北"></textarea>
+    <label>自然语言输入</label>
+    <textarea id="agent-message" rows="4" placeholder="例如：李导演的《断背山》真是令人动人，其中实体是李导演和断背山"></textarea>
     <div class="row" style="margin-top:8px">
-      <button id="agent-send-btn" onclick="sendAgentMessage()">鍙戦€佺粰 Agent</button>
-      <button class="btn-light" onclick="clearAgentChat()">娓呯┖瀵硅瘽</button>
+      <button id="agent-send-btn" onclick="sendAgentMessage()">发送给 Agent</button>
+      <button class="btn-light" onclick="clearAgentChat()">清空对话</button>
     </div>
-    <div class="hint">澶фā鍨嬩細鍏堝垽鏂槸鍚︿负瀹炰綋閾炬帴浠诲姟锛涘彧鏈夊悓鏃跺寘鍚師鏂囧拰瀹炰綋鏃舵墠鐢熸垚 LinkRequest JSON 骞朵氦缁?LangGraph workflow 鎵ц銆傚澶?LinkRequest 鐨?mention 鍙繚鐣?mention_id銆乻urface_form銆乻tart_offset銆乪nd_offset 鍥涗釜瀛楁銆?/div>
+    <div class="hint">大模型会先判断是否为实体链接任务。只有同时包含原文和实体时，才生成 LinkRequest JSON 并交给 LangGraph workflow 执行。对外提交的 LinkRequest 中，mention 只保留 mention_id、surface_form、start_offset、end_offset 四个字段。</div>
 
     <div class="agent-upload">
-      <label>鍦ㄥ璇濆尯涓婁紶鐭ヨ瘑搴?/label>
+      <label>在对话区上传知识库</label>
       <div class="row">
         <input id="agent-upload-file" class="hidden" type="file" onchange="onAgentFileSelected()">
-        <label for="agent-upload-file" class="file-button">閫夋嫨鐭ヨ瘑搴撴枃浠?/label>
-        <span id="agent-upload-name" class="file-name">灏氭湭閫夋嫨鏂囦欢</span>
+        <label for="agent-upload-file" class="file-button">选择知识库文件</label>
+        <span id="agent-upload-name" class="file-name">尚未选择文件</span>
       </div>
-      <input id="agent-upload-kb-id" style="margin-top:8px" placeholder="鍙€夛細瀵煎叆鍚庣殑鐭ヨ瘑搴?ID锛屼緥濡?ccks2019-v1">
+      <input id="agent-upload-kb-id" style="margin-top:8px" placeholder="可选：导入后的知识库 ID，例如 ccks2019-v1">
       <label style="display:flex;gap:8px;align-items:center;font-weight:500">
-        <input id="agent-upload-use-llm" type="checkbox" style="width:auto"> PDF/鏂囨湰浣跨敤澶фā鍨嬫娊鍙栧疄浣?
+        <input id="agent-upload-use-llm" type="checkbox" style="width:auto"> PDF/文本使用大模型抽取实体
       </label>
-      <button id="agent-upload-btn" onclick="uploadKBFromAgent()">涓婁紶骞惰涓哄綋鍓嶇煡璇嗗簱</button>
+      <button id="agent-upload-btn" onclick="uploadKBFromAgent()">上传并设为当前知识库</button>
     </div>
 
     <div class="advanced-json">
-      <h2>楂樼骇 JSON 璋冭瘯 <button class="btn-light" onclick="fillLinkPreset()">濉叆绀轰緥</button></h2>
+      <h2>高级 JSON 调试 <button class="btn-light" onclick="fillLinkPreset()">填入示例</button></h2>
     </div>
-    <label>瀹屾暣 LinkRequest JSON</label>
+    <label>完整 LinkRequest JSON</label>
     <textarea id="lk-json" rows="14"></textarea>
-    <div class="hint">鍙互鐐瑰嚮鐭ヨ瘑搴撳垪琛ㄤ腑鐨勨€滀娇鐢ㄢ€濓紝绯荤粺浼氳嚜鍔ㄥ～鍏?knowledge_base 瀛楁銆傚墠绔睍绀哄拰鎻愪氦鐨?LinkRequest 浼氬缁堥伒寰悗绔叕寮€鍗忚锛屼笉鍖呭惈 entity_type銆乧andidate_aliases 绛夊唴閮ㄥ瓧娈点€?/div>
+    <div class="hint">可以点击知识库列表中的“使用”，系统会自动填入 knowledge_base 字段。前端展示和提交的 LinkRequest 会始终遵循后端公开协议，不包含 entity_type、candidate_aliases 等内部字段。</div>
     <br>
-    <button id="lk-btn" onclick="runLink()">鎵ц閾炬帴</button>
+    <button id="lk-btn" onclick="runLink()">执行链接</button>
     <div id="lk-err" class="small" style="color:#b91c1c;margin-top:8px"></div>
   </section>
 
   <section class="panel right">
-    <h2>閾炬帴缁撴灉</h2>
-    <div id="lk-result"><div class="empty">鍙戦€佽姹傚悗锛岀粨鏋滀細鏄剧ず鍦ㄨ繖閲?/div></div>
+    <h2>链接结果</h2>
+    <div id="lk-result"><div class="empty">发送请求后，结果会显示在这里</div></div>
   </section>
 </main>
 
@@ -268,7 +268,7 @@ function showResult(id, result) {
 }
 
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t, index) => t.classList.toggle('active', ['kb','link'][index] === name));
+  document.querySelectorAll('.tab').forEach((t, index) => t.classList.toggle('active', ['kb', 'link'][index] === name));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-' + name).classList.add('active');
   if (name === 'kb' || name === 'link') loadKBs();
@@ -278,22 +278,24 @@ async function checkHealth() {
   const el = document.getElementById('health');
   try {
     const r = await api('GET', '/health');
-    el.textContent = r.ok ? '鏈嶅姟姝ｅ父' : '鏈嶅姟寮傚父';
-    el.style.cssText = r.ok ? 'margin-left:auto;background:#dcfce7;color:#166534' : 'margin-left:auto;background:#fee2e2;color:#991b1b';
+    el.textContent = r.ok ? '服务正常' : '服务异常';
+    el.style.cssText = r.ok
+      ? 'margin-left:auto;background:#dcfce7;color:#166534'
+      : 'margin-left:auto;background:#fee2e2;color:#991b1b';
   } catch {
-    el.textContent = '杩炴帴澶辫触';
+    el.textContent = '连接失败';
     el.style.cssText = 'margin-left:auto;background:#fee2e2;color:#991b1b';
   }
 }
 
 function onFileSelected() {
   const file = document.getElementById('upload-file').files[0];
-  document.getElementById('upload-file-name').textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : '灏氭湭閫夋嫨鏂囦欢';
+  document.getElementById('upload-file-name').textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : '尚未选择文件';
 }
 
 function resetUploadForm() {
   document.getElementById('upload-file').value = '';
-  document.getElementById('upload-file-name').textContent = '灏氭湭閫夋嫨鏂囦欢';
+  document.getElementById('upload-file-name').textContent = '尚未选择文件';
   document.getElementById('upload-kb-id').value = '';
   document.getElementById('upload-source').value = 'auto';
   document.getElementById('upload-use-llm').checked = false;
@@ -306,7 +308,7 @@ async function importUploadKB() {
   const box = document.getElementById('r-upload');
   if (!file) {
     box.className = 'result-box err';
-    box.textContent = '璇峰厛鐐瑰嚮鈥滈€夋嫨鏂囦欢鈥濓紝閫夋嫨 JSON銆丣SONL銆丳DF銆乀XT 鎴?Markdown 鏂囦欢銆?;
+    box.textContent = '请先点击“选择文件”，选择 JSON、JSONL、PDF、TXT 或 Markdown 文件。';
     return;
   }
 
@@ -322,7 +324,7 @@ async function importUploadKB() {
 
   const btn = document.getElementById('upload-btn');
   btn.disabled = true;
-  btn.textContent = '姝ｅ湪涓婁紶骞惰浆鎹?..';
+  btn.textContent = '正在上传并转换...';
   try {
     const resp = await fetch(API_BASE + '/api/v1/knowledge-bases/import-upload', {method: 'POST', body: form});
     const data = await resp.json();
@@ -335,19 +337,19 @@ async function importUploadKB() {
     showResult('r-upload', {ok: false, data: {message: String(err)}});
   } finally {
     btn.disabled = false;
-    btn.textContent = '涓婁紶骞跺鍏ョ煡璇嗗簱';
+    btn.textContent = '上传并导入知识库';
   }
 }
 
 function onAgentFileSelected() {
   const file = document.getElementById('agent-upload-file').files[0];
-  document.getElementById('agent-upload-name').textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : '灏氭湭閫夋嫨鏂囦欢';
+  document.getElementById('agent-upload-name').textContent = file ? `${file.name} (${Math.ceil(file.size / 1024)} KB)` : '尚未选择文件';
 }
 
 async function uploadKBFromAgent() {
   const file = document.getElementById('agent-upload-file').files[0];
   if (!file) {
-    appendChat('assistant', '璇峰厛閫夋嫨涓€涓煡璇嗗簱鏂囦欢銆傛敮鎸?CCKS kb_data銆丣SON/JSONL銆丳DF銆乀XT銆丮arkdown銆?, true);
+    appendChat('assistant', '请先选择一个知识库文件。支持 CCKS kb_data、JSON/JSONL、PDF、TXT、Markdown。', true);
     return;
   }
 
@@ -363,52 +365,52 @@ async function uploadKBFromAgent() {
 
   const btn = document.getElementById('agent-upload-btn');
   btn.disabled = true;
-  btn.textContent = '姝ｅ湪涓婁紶...';
-  appendChat('user', `涓婁紶鐭ヨ瘑搴撴枃浠讹細${file.name}`);
+  btn.textContent = '正在上传...';
+  appendChat('user', `上传知识库文件：${file.name}`);
   try {
     const resp = await fetch(API_BASE + '/api/v1/knowledge-bases/import-upload', {method: 'POST', body: form});
     const data = await resp.json();
     if (!resp.ok) {
-      appendChat('assistant', `鐭ヨ瘑搴撲笂浼犲け璐ワ細${JSON.stringify(data, null, 2)}`, true);
+      appendChat('assistant', `知识库上传失败：${JSON.stringify(data, null, 2)}`, true);
       return;
     }
     await loadKBs();
     setSelectedKB(data.kb_id, data.kb_version);
     useKB(data.kb_id, data.kb_version);
-    appendChat('assistant', `鐭ヨ瘑搴撳凡瀵煎叆骞惰涓哄綋鍓嶇煡璇嗗簱锛?{data.kb_id}/${data.kb_version}锛屽疄浣撴暟 ${data.entity_count}銆俙);
+    appendChat('assistant', `知识库已导入并设为当前知识库：${data.kb_id}/${data.kb_version}，实体数 ${data.entity_count}。`);
   } catch (err) {
-    appendChat('assistant', `鐭ヨ瘑搴撲笂浼犺姹傚け璐ワ細${String(err)}`, true);
+    appendChat('assistant', `知识库上传请求失败：${String(err)}`, true);
   } finally {
     btn.disabled = false;
-    btn.textContent = '涓婁紶骞惰涓哄綋鍓嶇煡璇嗗簱';
+    btn.textContent = '上传并设为当前知识库';
   }
 }
 
 function fillPreset() {
   document.getElementById('kb-id').value = 'demo-enterprises-v1';
   document.getElementById('kb-ver').value = 'v1';
-  document.getElementById('kb-desc').value = '婕旂ず浼佷笟鐭ヨ瘑搴?;
+  document.getElementById('kb-desc').value = '演示企业知识库';
   document.getElementById('kb-entities').value = JSON.stringify([
     {
       entity_id: 'E001',
-      canonical_name: '鍥藉鐢电綉鏈夐檺鍏徃',
+      canonical_name: '国家电网有限公司',
       entity_type: 'ORG',
-      aliases: ['鍥藉鐢电綉', '鍥界綉', 'SGCC'],
-      former_names: ['鍥藉鐢靛姏鍏徃'],
-      description: '涓浗澶у瀷鐢电綉浼佷笟锛岃礋璐ｇ數鍔涜緭閫佷笌閿€鍞€?,
+      aliases: ['国家电网', '国网', 'SGCC'],
+      former_names: ['国家电力公司'],
+      description: '中国大型电网企业，负责电力输送与销售。',
       parent_ids: [],
-      keywords: ['鐢电綉', '杈撶數', '鐢靛姏', '鍥芥湁浼佷笟']
+      keywords: ['电网', '输电', '电力', '国有企业'],
     },
     {
       entity_id: 'E002',
-      canonical_name: '鍗庝负鎶€鏈湁闄愬叕鍙?,
+      canonical_name: '华为技术有限公司',
       entity_type: 'ORG',
-      aliases: ['鍗庝负', 'Huawei'],
+      aliases: ['华为', 'Huawei'],
       former_names: [],
-      description: '鍏ㄧ悆 ICT 鍩虹璁炬柦鍜屾櫤鑳界粓绔彁渚涘晢銆?,
+      description: '全球 ICT 基础设施和智能终端提供商。',
       parent_ids: [],
-      keywords: ['閫氫俊', '5G', '鎵嬫満', '浜戣绠?]
-    }
+      keywords: ['通信', '5G', '手机', '云计算'],
+    },
   ], null, 2);
 }
 
@@ -419,7 +421,7 @@ async function importKB() {
     parsed = JSON.parse(document.getElementById('kb-entities').value);
   } catch (err) {
     box.className = 'result-box err';
-    box.textContent = '瀹炰綋鍒楄〃 JSON 鏍煎紡閿欒锛? + err.message;
+    box.textContent = '实体列表 JSON 格式错误：' + err.message;
     return;
   }
 
@@ -443,12 +445,12 @@ async function importKB() {
 
   if (!payload.kb_id) {
     box.className = 'result-box err';
-    box.textContent = '鐭ヨ瘑搴?ID 涓嶈兘涓虹┖锛氬彲浠ュ～鍐欎笂鏂?ID锛屾垨绮樿创鍖呭惈 kb_id 鐨勫畬鏁?KBPackage JSON';
+    box.textContent = '知识库 ID 不能为空：可以填写上方 ID，或粘贴包含 kb_id 的完整 KBPackage JSON';
     return;
   }
   if (!Array.isArray(payload.entities)) {
     box.className = 'result-box err';
-    box.textContent = '瀹炰綋鍒楄〃 JSON 鏍煎紡閿欒锛氳绮樿创瀹炰綋鏁扮粍锛屾垨鍖呭惈 entities 鏁扮粍鐨勫畬鏁?KBPackage JSON';
+    box.textContent = '实体列表 JSON 格式错误：请粘贴实体数组，或包含 entities 数组的完整 KBPackage JSON';
     return;
   }
 
@@ -464,7 +466,7 @@ async function loadKBs() {
   const result = await api('GET', '/api/v1/knowledge-bases');
   const el = document.getElementById('kb-list');
   if (!result.ok || !result.data.knowledge_bases?.length) {
-    el.innerHTML = '<div class="empty">鏆傛棤鐭ヨ瘑搴撱€傚彲浠ュ厛閫夋嫨鏈湴鏂囦欢瀵煎叆锛屾垨濉叆绀轰緥 JSON銆?/div>';
+    el.innerHTML = '<div class="empty">暂无知识库。可以先选择本地文件导入，或填入示例 JSON。</div>';
     knownKBs = [];
     populateAgentKBOptions([]);
     return;
@@ -475,9 +477,9 @@ async function loadKBs() {
     <div class="kb-item">
       <div>
         <div class="kb-name">${escapeHtml(kb.kb_id)}</div>
-        <div class="kb-meta">${escapeHtml(kb.kb_version)} 路 ${kb.entity_count} 涓疄浣?路 ${escapeHtml(kb.description || '鏃犳弿杩?)}</div>
+        <div class="kb-meta">${escapeHtml(kb.kb_version)} · ${kb.entity_count} 个实体 · ${escapeHtml(kb.description || '无描述')}</div>
       </div>
-      <button class="btn-light" onclick="useKB('${escapeAttr(kb.kb_id)}','${escapeAttr(kb.kb_version)}')">浣跨敤</button>
+      <button class="btn-light" onclick="useKB('${escapeAttr(kb.kb_id)}','${escapeAttr(kb.kb_version)}')">使用</button>
     </div>
   `).join('');
 }
@@ -493,7 +495,7 @@ function populateAgentKBOptions(kbs) {
   if (!select) return;
   const previous = select.value;
   if (!kbs.length) {
-    select.innerHTML = '<option value="">鏆傛棤鐭ヨ瘑搴擄紝璇峰厛涓婁紶</option>';
+    select.innerHTML = '<option value="">暂无知识库，请先上传</option>';
     return;
   }
   select.innerHTML = kbs.map(kb => {
@@ -531,33 +533,18 @@ function setSelectedModel(model) {
   select.value = model;
 }
 
-function fillLinkPresetLegacy() {
-  const kb = getSelectedKB() || {kb_id: 'demo-enterprises-v1', kb_version: 'v1'};
-  document.getElementById('lk-json').value = JSON.stringify({
-    schema_version: 'v1',
-    request_id: 'req-demo',
-    text: {content: '鍥藉鐢电綉涓庡崕涓哄湪鏁板瓧鍖栬浆鍨嬮」鐩腑灞曞紑鍚堜綔銆?, language: 'zh'},
-    mentions: [
-      {mention_id: 'm1', surface_form: '鍥藉鐢电綉', start_offset: 0, end_offset: 4},
-      {mention_id: 'm2', surface_form: '鍗庝负', start_offset: 5, end_offset: 7},
-    ],
-    knowledge_base: {kb_id: kb.kb_id, kb_version: kb.kb_version},
-    options: defaultLinkOptions(),
-  }, null, 2);
-}
-
 function fillAgentExample() {
-  document.getElementById('agent-message').value = '鏉庡婕旂殑銆婃柇鑳屽北銆嬬湡鏄护浜哄姩浜猴紝鍏朵腑瀹炰綋鏄潕瀵兼紨鍜屾柇鑳屽北';
+  document.getElementById('agent-message').value = '李导演的《断背山》真是令人动人，其中实体是李导演和断背山';
 }
 
 function fillLinkPreset() {
   const kb = getSelectedKB() || {kb_id: 'demo-enterprises-v1', kb_version: 'v1'};
   setLinkRequestEditor(buildPublicLinkRequestTemplate(kb, {
     request_id: 'req-demo',
-    text: {content: '閸ヨ棄顔嶉悽鐢电秹娑撳骸宕曟稉鍝勬躬閺佹澘鐡ч崠鏍祮閸ㄥ銆嶉惄顔昏厬鐏炴洖绱戦崥鍫滅稊閵?, language: 'zh'},
+    text: {content: '国家电网与华为在数字化转型项目中展开合作。', language: 'zh'},
     mentions: [
-      {mention_id: 'm1', surface_form: '閸ヨ棄顔嶉悽鐢电秹', start_offset: 0, end_offset: 4},
-      {mention_id: 'm2', surface_form: '閸楀簼璐?, start_offset: 5, end_offset: 7},
+      {mention_id: 'm1', surface_form: '国家电网', start_offset: 0, end_offset: 4},
+      {mention_id: 'm2', surface_form: '华为', start_offset: 5, end_offset: 7},
     ],
   }));
 }
@@ -565,7 +552,7 @@ function fillLinkPreset() {
 function clearAgentChat() {
   agentHistory = [];
   const log = document.getElementById('agent-chat-log');
-  log.innerHTML = '<div class="chat-msg chat-agent">瀵硅瘽宸叉竻绌恒€備綘鍙互杈撳叆锛氭枃鏈細...锛涘疄浣擄細A锛孊銆?/div>';
+  log.innerHTML = '<div class="chat-msg chat-agent">对话已清空。你可以输入：文本：...；实体：A，B。</div>';
 }
 
 function appendChat(role, content, isError = false) {
@@ -583,8 +570,8 @@ async function sendAgentMessage() {
   if (!message) return;
 
   const kb = getSelectedKB();
-    const selectedModel = document.getElementById('agent-model').value;
-    const model = selectedModel && selectedModel !== 'auto' ? selectedModel : null;
+  const selectedModel = document.getElementById('agent-model').value;
+  const model = selectedModel && selectedModel !== 'auto' ? selectedModel : null;
   const history = agentHistory.slice(-8);
   appendChat('user', message);
   agentHistory.push({role: 'user', content: message});
@@ -592,7 +579,7 @@ async function sendAgentMessage() {
 
   const btn = document.getElementById('agent-send-btn');
   btn.disabled = true;
-  btn.textContent = 'Agent 鎬濊€冧腑...';
+  btn.textContent = 'Agent 思考中...';
   try {
     const result = await api('POST', '/api/v1/agent/chat', {
       message,
@@ -615,15 +602,15 @@ async function sendAgentMessage() {
     const data = result.data;
     if (data.selected_model) setSelectedModel(data.selected_model);
     if (data.selected_kb_id) setSelectedKB(data.selected_kb_id, data.selected_kb_version || 'v1');
-    appendChat('assistant', data.reply || '宸插鐞嗐€?);
-    agentHistory.push({role: 'assistant', content: data.reply || '宸插鐞嗐€?});
+    appendChat('assistant', data.reply || '已处理。');
+    agentHistory.push({role: 'assistant', content: data.reply || '已处理。'});
 
     if (data.link_request) {
       setLinkRequestEditor(data.link_request);
     } else if (data.intent !== 'link') {
       const linkBox = document.getElementById('lk-result');
       if (linkBox) {
-        linkBox.innerHTML = '<div class="result-box ok">鏈疆鏄櫘閫氬璇濇垨閰嶇疆鎿嶄綔锛屾病鏈夌敓鎴?LinkRequest锛屼篃娌℃湁鎻愪氦瀹炰綋閾炬帴 workflow銆?/div>';
+        linkBox.innerHTML = '<div class="result-box ok">本轮是普通对话或配置操作，没有生成 LinkRequest，也没有提交实体链接 workflow。</div>';
       }
     }
     if (data.link_response) {
@@ -633,10 +620,10 @@ async function sendAgentMessage() {
       document.getElementById('agent-upload-file').focus();
     }
   } catch (err) {
-    appendChat('assistant', `Agent 璇锋眰澶辫触锛?{String(err)}`, true);
+    appendChat('assistant', `Agent 请求失败：${String(err)}`, true);
   } finally {
     btn.disabled = false;
-    btn.textContent = '鍙戦€佺粰 Agent';
+    btn.textContent = '发送给 Agent';
   }
 }
 
@@ -648,14 +635,14 @@ async function runLink() {
   try {
     body = JSON.parse(document.getElementById('lk-json').value);
   } catch (e) {
-    err.textContent = 'JSON 鏍煎紡閿欒锛? + e.message;
+    err.textContent = 'JSON 格式错误：' + e.message;
     return;
   }
   btn.disabled = true;
-  btn.textContent = '姝ｅ湪閾炬帴...';
+  btn.textContent = '正在链接...';
   const result = await api('POST', '/api/v1/entity-link', body);
   btn.disabled = false;
-  btn.textContent = '鎵ц閾炬帴';
+  btn.textContent = '执行链接';
   renderLinkResult(result);
 }
 
@@ -697,28 +684,28 @@ function renderLinkResultView() {
         ${renderSummaryButton('nil', 'nil', counts.nil)}
         ${renderSummaryButton('ambiguous', 'ambiguous', counts.ambiguous)}
         ${renderSummaryButton('review', 'review', counts.review)}
-        ${renderSummaryButton('llm', '澶фā鍨嬪弬涓?, counts.llm)}
+        ${renderSummaryButton('llm', '大模型参与', counts.llm)}
       </div>
       <div class="result-search">
-        <input id="result-search-input" value="${escapeAttr(resultSearch)}" oncompositionstart="startResultSearchComposition()" oncompositionend="endResultSearchComposition(this.value)" oninput="setResultSearch(this.value)" placeholder="鎼滅储 mention銆佹爣鍑嗗疄浣撴垨瀹炰綋ID">
-        <button class="btn-light search-clear" onclick="clearResultSearch()">娓呯┖</button>
+        <input id="result-search-input" value="${escapeAttr(resultSearch)}" oncompositionstart="startResultSearchComposition()" oncompositionend="endResultSearchComposition(this.value)" oninput="setResultSearch(this.value)" placeholder="搜索 mention、标准实体或实体ID">
+        <button class="btn-light search-clear" onclick="clearResultSearch()">清空</button>
       </div>
     </div>
     <div class="card-actions">
-      <button class="json-toggle" onclick="toggleFullResponseJson()">${fullResponseJsonExpanded ? '鏀惰捣瀹屾暣 Response JSON' : '鏌ョ湅瀹屾暣 Response JSON'}</button>
+      <button class="json-toggle" onclick="toggleFullResponseJson()">${fullResponseJsonExpanded ? '收起完整 Response JSON' : '查看完整 Response JSON'}</button>
     </div>
     ${fullResponseJsonExpanded ? `<pre class="entity-json response-json">${escapeHtml(JSON.stringify(data, null, 2))}</pre>` : ''}
-    ${counts.llm ? `<div class="review-note">澶фā鍨嬪弬涓庤繃 ${counts.llm} 涓疄浣擄細${escapeHtml(llmNames.join('銆?))}${counts.llm > llmNames.length ? ' 绛? : ''}</div>` : ''}
+    ${counts.llm ? `<div class="review-note">大模型参与过 ${counts.llm} 个实体：${escapeHtml(llmNames.join('、'))}${counts.llm > llmNames.length ? ' 等' : ''}</div>` : ''}
     ${llmDiagnosticNote}
     <div id="link-result-list"></div>
-    ${data.coreference_chains?.length ? '<h2>鍏辨寚閾?/h2>' + data.coreference_chains.map(c => `<div class="small"><span class="tag">${escapeHtml(c.chain_id)}</span>${c.mention_ids.map(escapeHtml).join(' -> ')} -> ${escapeHtml(c.entity_id)}</div>`).join('') : ''}
+    ${data.coreference_chains?.length ? '<h2>共指链</h2>' + data.coreference_chains.map(c => `<div class="small"><span class="tag">${escapeHtml(c.chain_id)}</span>${c.mention_ids.map(escapeHtml).join(' -> ')} -> ${escapeHtml(c.entity_id)}</div>`).join('') : ''}
   `;
   renderLinkResultItems();
 }
 
 function renderSummaryButton(filter, label, count) {
   const active = resultFilter === filter ? ' active' : '';
-  return `<button class="summary-btn${active}" onclick="setResultFilter('${filter}')">${escapeHtml(label)}锛?span class="count">${Number(count || 0)}</span></button>`;
+  return `<button class="summary-btn${active}" onclick="setResultFilter('${filter}')">${escapeHtml(label)}：<span class="count">${Number(count || 0)}</span></button>`;
 }
 
 function toggleFullResponseJson() {
@@ -738,7 +725,7 @@ function renderLLMRerankDiagnosticNote(diag) {
   if (diag.api_key_env) extras.push(`key=${diag.api_key_env}`);
   if (diag.model) extras.push(`model=${diag.model}`);
   const detail = diag.detail || diag.error || (diag.parse ? JSON.stringify(diag.parse) : '');
-  return `<div class="review-note">澶фā鍨嬪鏍歌瘖鏂細${escapeHtml(status)} / ${escapeHtml(reason)}${extras.length ? `锛?{escapeHtml(extras.join('锛?))}锛塦 : ''}${detail ? `<br><span class="small">${escapeHtml(detail)}</span>` : ''}</div>`;
+  return `<div class="review-note">大模型复核诊断：${escapeHtml(status)} / ${escapeHtml(reason)}${extras.length ? `（${escapeHtml(extras.join('，'))}）` : ''}${detail ? `<br><span class="small">${escapeHtml(detail)}</span>` : ''}</div>`;
 }
 
 function setResultFilter(filter) {
@@ -775,7 +762,7 @@ function renderLinkResultItems() {
   const filtered = results.filter(item => matchesResultFilter(item) && matchesResultSearch(item));
   list.innerHTML = filtered.length
     ? filtered.map(renderResultCard).join('')
-    : '<div class="result-empty">褰撳墠绛涢€夋潯浠朵笅娌℃湁鍖归厤瀹炰綋銆?/div>';
+    : '<div class="result-empty">当前筛选条件下没有匹配实体。</div>';
 }
 
 function toggleResultJson(encodedKey) {
@@ -802,9 +789,11 @@ function matchesResultSearch(item) {
     item.mention_id,
     item.surface_form,
     item.link_status,
+    item.mention_type,
     item.entity?.entity_id,
     item.entity?.canonical_name,
-    ...(item.candidates || []).flatMap(c => [c.entity_id, c.canonical_name]),
+    item.entity?.entity_type,
+    ...(item.candidates || []).flatMap(c => [c.entity_id, c.canonical_name, c.entity_type]),
   ];
   return fields.some(value => String(value || '').toLowerCase().includes(q));
 }
@@ -812,7 +801,7 @@ function matchesResultSearch(item) {
 function isLLMReviewed(item) {
   return (item.evidence || []).some(e => {
     const text = `${e.evidence_type || ''} ${e.detail || ''}`;
-    return text.includes('澶фā鍨嬪鏍?) || text.includes('llm_rerank');
+    return text.includes('大模型复核') || text.includes('llm_rerank') || text.includes('llm_alias_expansion');
   });
 }
 
@@ -830,8 +819,8 @@ function renderResultCard(item) {
   const mentionType = formatTypeLabel(item.mention_type);
   const entityType = item.entity?.entity_type ? formatTypeLabel(item.entity.entity_type) : '';
   const badges = [
-    isLLMReviewed(item) ? '<span class="status llm-reviewed">澶фā鍨嬪弬涓?/span>' : '',
-    isReviewRequired(item) ? '<span class="status review">闇€澶嶆牳</span>' : '',
+    isLLMReviewed(item) ? '<span class="status llm-reviewed">大模型参与</span>' : '',
+    isReviewRequired(item) ? '<span class="status review">需复核</span>' : '',
     `<span class="status ${escapeHtml(item.link_status)}">${escapeHtml(item.link_status)}</span>`,
   ].filter(Boolean).join(' ');
   return `
@@ -840,15 +829,15 @@ function renderResultCard(item) {
         <div><b>${escapeHtml(item.surface_form)}</b> <span class="small">${escapeHtml(item.mention_id)}</span></div>
         <div class="row">${badges}</div>
       </div>
-      <div class="small" style="margin-top:6px">mention 绫诲瀷锛?{escapeHtml(mentionType)}</div>
-      ${item.entity ? `<div style="margin-top:8px">鏍囧噯瀹炰綋锛?b>${escapeHtml(item.entity.canonical_name)}</b> <span class="small">${escapeHtml(item.entity.entity_id)}</span></div>` : ''}
-      ${item.entity ? `<div class="small">瀹炰綋绫诲瀷锛?{escapeHtml(entityType)}</div>` : ''}
-      <div class="small" style="margin-top:6px">缃俊搴︼細${Number(item.confidence || 0).toFixed(3)}</div>
-      ${item.coreference ? `<div class="small">鍏辨寚鏉ユ簮锛?{escapeHtml(item.coreference.resolved_from)}</div>` : ''}
+      <div class="small" style="margin-top:6px">mention 类型：${escapeHtml(mentionType)}</div>
+      ${item.entity ? `<div style="margin-top:8px">标准实体：<b>${escapeHtml(item.entity.canonical_name)}</b> <span class="small">${escapeHtml(item.entity.entity_id)}</span></div>` : ''}
+      ${item.entity ? `<div class="small">实体类型：${escapeHtml(entityType)}</div>` : ''}
+      <div class="small" style="margin-top:6px">置信度：${Number(item.confidence || 0).toFixed(3)}</div>
+      ${item.coreference ? `<div class="small">共指来源：${escapeHtml(item.coreference.resolved_from)}</div>` : ''}
       ${item.evidence?.length ? `<div style="margin-top:8px">${item.evidence.map(e => `<span class="tag">${escapeHtml(e.evidence_type)}</span><span class="small">${escapeHtml(e.detail)}</span><br>`).join('')}</div>` : ''}
       ${item.candidates?.length ? `<div style="margin-top:8px">${item.candidates.map(c => `<div class="small">${escapeHtml(c.canonical_name)} (${escapeHtml(c.entity_id)} / ${escapeHtml(formatTypeLabel(c.entity_type))}) score=${Number(c.score).toFixed(3)}</div>`).join('')}</div>` : ''}
       <div class="card-actions">
-        <button class="json-toggle" onclick="toggleResultJson('${escapeAttr(encodeURIComponent(jsonKey))}')">${jsonExpanded ? '鏀惰捣 Response JSON' : '鏌ョ湅 Response JSON'}</button>
+        <button class="json-toggle" onclick="toggleResultJson('${escapeAttr(encodeURIComponent(jsonKey))}')">${jsonExpanded ? '收起 Response JSON' : '查看 Response JSON'}</button>
       </div>
       ${jsonExpanded ? `<pre class="entity-json">${escapeHtml(JSON.stringify(item, null, 2))}</pre>` : ''}
     </div>
@@ -861,11 +850,11 @@ function resultJsonKey(item) {
 
 function formatTypeLabel(value) {
   const text = String(value || '').toUpperCase();
-  return text && text !== 'UNKNOWN' ? text : '鏈瘑鍒?;
+  return text && text !== 'UNKNOWN' ? text : '未识别';
 }
 
 function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[ch]));
 }
 
 function escapeAttr(value) {
