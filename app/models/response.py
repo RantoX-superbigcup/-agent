@@ -1,6 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, Field
-from app.models.enums import LinkStatus, EvidenceType, EntityType
+from app.models.enums import LinkStatus, EvidenceType, EntityType, MentionType
 
 
 class EntityRef(BaseModel):
@@ -12,6 +12,7 @@ class EntityRef(BaseModel):
 class CandidateItem(BaseModel):
     entity_id: str
     canonical_name: str
+    entity_type: EntityType
     score: float
 
 
@@ -28,6 +29,7 @@ class CoreferenceInfo(BaseModel):
 class LinkResult(BaseModel):
     mention_id: str
     surface_form: str
+    mention_type: MentionType = MentionType.UNKNOWN
     link_status: LinkStatus
     entity: Optional[EntityRef] = None
     confidence: float = 0.0

@@ -11,16 +11,16 @@ from typing import Any
 from pydantic import ValidationError
 
 from app.config import AppConfig
-from app.models.agent import AgentChatRequest, AgentChatResponse
-from app.models.request import LinkRequest
+from app.models.agent import AgentChatRequest, AgentChatResponse, AgentMessage
+from app.models.request import LinkRequest, MentionHint, WorkflowLinkRequest
 from app.models.response import LinkResponse, LinkResult
+from app.services.link_service import LinkService
 from app.services.llm_provider import (
     LLMProviderConfig,
     SUPPORTED_API_KEY_ENV_NAMES,
     append_chat_completions_path,
     resolve_llm_provider,
 )
-from app.services.link_service import LinkService
 
 
 class AgentChatError(ValueError):
@@ -46,6 +46,7 @@ class AgentChatService:
 
     def chat(self, req: AgentChatRequest) -> AgentChatResponse:
         selected_kb_id, selected_kb_version = self._select_kb(req.kb_id, req.kb_version)
+
         local_response = self._try_local_response(req, selected_kb_id, selected_kb_version)
         if local_response:
             return local_response
@@ -62,21 +63,24 @@ class AgentChatService:
                 "LLM_NOT_CONFIGURED",
                 "No LLM API key found. Supported env names: " + " / ".join(self.API_KEY_ENV_NAMES),
             )
-        model = provider.model
-        warnings: list[str] = [f"llm_provider={provider.provider}", f"api_key_env={provider.api_key_env}"]
 
+        warnings: list[str] = [
+            f"llm_provider={provider.provider}",
+            f"api_key_env={provider.api_key_env}",
+        ]
         llm_payload = self._ask_llm(req, selected_kb_id, selected_kb_version, provider)
         intent = str(llm_payload.get("intent") or "chat").strip() or "chat"
         reply = str(llm_payload.get("reply") or "").strip()
+        selected_model = provider.model
 
         if intent == "switch_model":
-            model = str(llm_payload.get("model") or model).strip() or model
+            selected_model = str(llm_payload.get("model") or selected_model).strip() or selected_model
             return AgentChatResponse(
                 intent=intent,
-                reply=reply or f"已切换到模型 {model}。",
+                reply=reply or f"已切换到模型 {selected_model}。",
                 selected_kb_id=selected_kb_id,
                 selected_kb_version=selected_kb_version,
-                selected_model=model,
+                selected_model=selected_model,
                 warnings=warnings,
             )
 
@@ -86,11 +90,11 @@ class AgentChatService:
             if not kb_id or not self.link_service.store.exists(kb_id):
                 return AgentChatResponse(
                     intent=intent,
-                    reply=f"没有找到知识库 {kb_id or '（空）'}，请先上传或在知识库列表中选择。",
+                    reply=reply or f"没有找到知识库 {kb_id or '（空）'}，请先上传或从列表中选择。",
                     selected_kb_id=selected_kb_id,
                     selected_kb_version=selected_kb_version,
-                    selected_model=model,
-                    warnings=[f"kb_not_found={kb_id or '<empty>'}"],
+                    selected_model=selected_model,
+                    warnings=warnings + [f"kb_not_found={kb_id or '<empty>'}"],
                 )
             kb_meta = self._get_kb_meta_lightweight(kb_id)
             kb_version = str(kb_meta.get("kb_version") or kb_version)
@@ -99,72 +103,80 @@ class AgentChatService:
                 reply=reply or f"已切换到知识库 {kb_id}/{kb_version}。",
                 selected_kb_id=kb_id,
                 selected_kb_version=kb_version,
-                selected_model=model,
+                selected_model=selected_model,
                 warnings=warnings,
             )
 
         if intent == "upload_kb":
             return AgentChatResponse(
                 intent=intent,
-                reply=reply or "可以在对话框下方选择本地文件上传为知识库；支持 CCKS kb_data、JSON/JSONL、PDF 和文本。",
+                reply=reply or "可以在页面中选择本地文件上传知识库，支持 CCKS kb_data、JSON、JSONL、PDF、TXT 和 Markdown。",
                 selected_kb_id=selected_kb_id,
                 selected_kb_version=selected_kb_version,
-                selected_model=model,
+                selected_model=selected_model,
                 warnings=warnings,
             )
 
         if intent != "link":
             return AgentChatResponse(
                 intent=intent,
-                reply=reply or "这次输入不像实体链接任务，我不会生成 LinkRequest 或调用 workflow。你可以直接聊天，或输入“文本：...；实体：A，B”开始链接。",
+                reply=reply or "这次输入不是完整的实体链接任务。我不会生成 LinkRequest，也不会触发 workflow。",
                 selected_kb_id=selected_kb_id,
                 selected_kb_version=selected_kb_version,
-                selected_model=model,
+                selected_model=selected_model,
                 warnings=warnings,
             )
 
         link_payload = llm_payload.get("link_request")
         if not link_payload:
             return AgentChatResponse(
-                intent=intent,
-                reply=reply or "我还需要文本内容和需要链接的实体 mention。可以这样输入：文本：...；实体：A，B。",
+                intent="link",
+                reply=reply or "我还需要原文文本和要链接的实体。可以这样输入：文本：...；实体：A，B。",
                 selected_kb_id=selected_kb_id,
                 selected_kb_version=selected_kb_version,
-                selected_model=model,
+                selected_model=selected_model,
                 warnings=warnings,
             )
 
         if not self._looks_like_link_payload(link_payload):
             return AgentChatResponse(
                 intent="chat",
-                reply=reply or "我判断这次输入还不是完整的实体链接请求，因此没有调用 workflow。请提供原文和要链接的实体，例如：文本：...；实体：A，B。",
+                reply=reply or "当前输入还不是完整的实体链接请求，因此没有调用 workflow。请提供原文和实体列表。",
                 selected_kb_id=selected_kb_id,
                 selected_kb_version=selected_kb_version,
-                selected_model=model,
+                selected_model=selected_model,
                 warnings=warnings + ["blocked_non_link_payload"],
             )
 
-        link_request = self._build_link_request(
+        public_link_request, mention_hints = self._build_link_request(
             link_payload,
             selected_kb_id,
             selected_kb_version,
             req,
             warnings,
         )
+        workflow_request, mention_type_diagnostics = self._prepare_link_request(
+            public_link_request,
+            mention_hints,
+            warnings,
+        )
 
         link_response = None
         if req.run_workflow:
             try:
-                link_response = self.link_service.link(link_request)
+                link_response = self.link_service.link_with_diagnostics(
+                    workflow_request,
+                    mention_type_diagnostics,
+                )
             except ValueError as exc:
                 return AgentChatResponse(
                     status="error",
                     intent="link",
                     reply=f"我已经生成了接口 JSON，但 workflow 执行失败：{exc}",
-                    selected_kb_id=link_request.knowledge_base.kb_id,
-                    selected_kb_version=link_request.knowledge_base.kb_version,
-                    selected_model=model,
-                    link_request=link_request,
+                    selected_kb_id=public_link_request.knowledge_base.kb_id,
+                    selected_kb_version=public_link_request.knowledge_base.kb_version,
+                    selected_model=selected_model,
+                    link_request=public_link_request,
                     warnings=warnings,
                 )
 
@@ -177,15 +189,15 @@ class AgentChatService:
             )
             reply = generated_reply if wants_detail else (reply or generated_reply)
         else:
-            reply = reply or "已将你的输入转成 LinkRequest JSON。"
+            reply = reply or "已将你的输入转换成标准 LinkRequest JSON。"
 
         return AgentChatResponse(
             intent="link",
             reply=reply,
-            selected_kb_id=link_request.knowledge_base.kb_id,
-            selected_kb_version=link_request.knowledge_base.kb_version,
-            selected_model=model,
-            link_request=link_request,
+            selected_kb_id=public_link_request.knowledge_base.kb_id,
+            selected_kb_version=public_link_request.knowledge_base.kb_version,
+            selected_model=selected_model,
+            link_request=public_link_request,
             link_response=link_response,
             warnings=warnings,
         )
@@ -198,7 +210,6 @@ class AgentChatService:
         provider: LLMProviderConfig,
     ) -> dict[str, Any]:
         url = append_chat_completions_path(provider.base_url)
-
         body = json.dumps(
             {
                 "model": provider.model,
@@ -208,7 +219,6 @@ class AgentChatService:
             },
             ensure_ascii=False,
         ).encode("utf-8")
-
         request = urllib.request.Request(
             url,
             data=body,
@@ -254,9 +264,9 @@ class AgentChatService:
                 reply=(
                     "你可以这样输入：\n"
                     "1. 文本：李导演的《断背山》真是令人动人；实体：李导演，断背山。\n"
-                    "2. 南京南站可以坐高铁到北京南站；实体：南京南站，高铁，北京南站。\n"
+                    "2. 文本：国网推进特高压线路扩容；实体：国网。\n"
                     "3. 换成知识库 cck2019。\n"
-                    "只有当你同时提供原文和实体时，我才会生成 LinkRequest JSON 并交给 LangGraph workflow 执行。"
+                    "只有同时提供原文和实体时，我才会生成 LinkRequest 并提交 LangGraph workflow。"
                 ),
                 selected_kb_id=selected_kb_id,
                 selected_kb_version=selected_kb_version,
@@ -266,7 +276,7 @@ class AgentChatService:
         if any(term in text for term in upload_terms):
             return AgentChatResponse(
                 intent="upload_kb",
-                reply="请在对话框下方点击“选择知识库文件”，可上传 CCKS kb_data、JSON/JSONL、PDF、TXT 或 Markdown。",
+                reply="请在页面下方点击“选择知识库文件”，支持 CCKS kb_data、JSON、JSONL、PDF、TXT 和 Markdown。",
                 selected_kb_id=selected_kb_id,
                 selected_kb_version=selected_kb_version,
                 selected_model=req.model,
@@ -284,22 +294,20 @@ class AgentChatService:
         return None
 
     def _extract_explicit_link_payload(self, message: str) -> dict[str, Any] | None:
-        matches = list(
-            re.finditer(
-                r"(?:^|[\n\r;；。])\s*"
-                r"(?:需要(?:识别|链接|消歧)的)?(?:实体|实体列表|mentions?|mention)"
-                r"\s*(?:[:：]|为|是|包括|包含|有|如下)\s*[:：]?\s*",
-                message,
-                re.IGNORECASE,
-            )
+        pattern = re.compile(
+            r"(?:^|[\n\r;；])\s*(?:需要(?:识别|链接|消歧)的)?(?:实体|实体列表|mentions?|mention)(?:包括|如下|为|是)?\s*[:：]\s*",
+            re.IGNORECASE,
         )
+        matches = list(pattern.finditer(message))
         if not matches:
             return None
+
         marker = matches[-1]
         content = self._strip_text_marker(message[: marker.start()])
         mentions_text = message[marker.end():].strip()
         if not content or not mentions_text:
             return None
+
         mentions = self._split_mentions(mentions_text)
         if not mentions:
             return None
@@ -310,9 +318,7 @@ class AgentChatService:
 
     def _strip_text_marker(self, text: str) -> str:
         text = text.strip().strip(";；")
-        matched = re.search(r"(?:^|[\n\r;；])\s*(?:文本|原文|句子|内容)\s*(?:[:：]|为|是)\s*", text)
-        if matched:
-            text = text[matched.end():]
+        text = re.sub(r"^(?:文本|原文|句子|内容)\s*[:：]\s*", "", text)
         return text.strip().strip(";；")
 
     def _run_local_link_request(
@@ -324,7 +330,7 @@ class AgentChatService:
     ) -> AgentChatResponse:
         warnings = ["local_explicit_entities_parser"]
         try:
-            link_request = self._build_link_request(
+            public_link_request, mention_hints = self._build_link_request(
                 link_payload,
                 selected_kb_id,
                 selected_kb_version,
@@ -342,19 +348,27 @@ class AgentChatService:
                 warnings=warnings,
             )
 
+        workflow_request, mention_type_diagnostics = self._prepare_link_request(
+            public_link_request,
+            mention_hints,
+            warnings,
+        )
         link_response = None
         if req.run_workflow:
             try:
-                link_response = self.link_service.link(link_request)
+                link_response = self.link_service.link_with_diagnostics(
+                    workflow_request,
+                    mention_type_diagnostics,
+                )
             except ValueError as exc:
                 return AgentChatResponse(
                     status="error",
                     intent="link",
-                    reply=f"我已经本地生成了 LinkRequest，但 workflow 执行失败：{exc}",
-                    selected_kb_id=link_request.knowledge_base.kb_id,
-                    selected_kb_version=link_request.knowledge_base.kb_version,
+                    reply=f"我已经在本地生成了 LinkRequest，但 workflow 执行失败：{exc}",
+                    selected_kb_id=public_link_request.knowledge_base.kb_id,
+                    selected_kb_version=public_link_request.knowledge_base.kb_version,
                     selected_model=req.model,
-                    link_request=link_request,
+                    link_request=public_link_request,
                     warnings=warnings,
                 )
 
@@ -365,18 +379,15 @@ class AgentChatService:
                 else self._build_link_completion_reply(link_response)
             )
         else:
-            reply = (
-                "已根据明确的实体列表本地生成 LinkRequest JSON；"
-                "本步未调用前置大模型解析，尚未执行 workflow。"
-            )
+            reply = "已根据明确的实体列表在本地生成标准 LinkRequest JSON。本步没有调用前置大模型解析。"
 
         return AgentChatResponse(
             intent="link",
             reply=reply,
-            selected_kb_id=link_request.knowledge_base.kb_id,
-            selected_kb_version=link_request.knowledge_base.kb_version,
+            selected_kb_id=public_link_request.knowledge_base.kb_id,
+            selected_kb_version=public_link_request.knowledge_base.kb_version,
             selected_model=req.model,
-            link_request=link_request,
+            link_request=public_link_request,
             link_response=link_response,
             warnings=warnings,
         )
@@ -392,12 +403,9 @@ class AgentChatService:
             "节点",
             "每个实体",
             "各个实体",
-            "实体做的操作",
             "做的操作",
             "怎么处理",
             "如何处理",
-            "怎么链接",
-            "如何链接",
             "为什么",
             "原因",
             "解释",
@@ -413,144 +421,166 @@ class AgentChatService:
         llm_rerank_count = int(trace_options.get("llm_rerank_count") or 0)
         parts = [
             (
-                f"实体链接已完成：共 {summary.total_mentions} 个 mention，"
+                f"实体链接已完成，共 {summary.total_mentions} 个 mention，"
                 f"linked={summary.linked_count}，ambiguous={summary.ambiguous_count}，"
                 f"nil={summary.nil_count}，review={summary.review_count}。"
             )
         ]
         if llm_rerank_count:
-            parts.append(f"大模型复核参与了 {llm_rerank_count} 个实体，可在右侧点击“大模型参与”查看。")
+            parts.append(f"大模型复核参与了 {llm_rerank_count} 个实体，可在结果筛选中查看。")
         elif summary.review_count:
-            parts.append("右侧可点击 review 或 ambiguous 查看需要人工确认的实体。")
+            parts.append("右侧可筛选需要人工复核的实体。")
         else:
-            parts.append("详细候选、证据和筛选按钮都在右侧结果区。")
+            parts.append("详细候选、证据和筛选按钮都在结果区。")
         return "".join(parts)
 
     def _build_workflow_process_reply(self, link_response: LinkResponse, *, local_parser: bool) -> str:
         summary = link_response.summary
+        if not summary:
+            return "本轮未返回可展示的 workflow 摘要。"
         trace_options = link_response.trace.options_used if link_response.trace else {}
         llm_rerank_count = int(trace_options.get("llm_rerank_count") or 0)
-        nil_count = summary.nil_count if summary else 0
-        review_count = summary.review_count if summary else 0
-        ambiguous_count = summary.ambiguous_count if summary else 0
         coref_count = sum(1 for result in link_response.results if result.coreference)
-
         lines = [
-            "这轮我按你的要求展开说明：",
+            "本轮处理过程如下：",
             (
-                "前置解析使用本地“文本/实体”格式解析器，未让大模型重新抽取 mention；"
+                "1. 前置解析：检测到明确的“文本/实体”列表，未调用大模型抽取 mention，直接构造标准 LinkRequest。"
                 if local_parser
-                else "前置解析先由大模型判断这是实体链接任务，并生成 LinkRequest；"
+                else "1. 前置解析：先由大模型判断是否为实体链接任务，并把自然语言转成标准 LinkRequest。"
+            ),
+            "2. 工作流：进入 LangGraph 节点链路，依次执行 validate、load_kb、candidate_route、rerank、llm_rerank、resolve、coreference、review_route。",
+            (
+                f"3. 结果统计：mention={summary.total_mentions}，linked={summary.linked_count}，"
+                f"ambiguous={summary.ambiguous_count}，nil={summary.nil_count}，review={summary.review_count}。"
             ),
             (
-                f"随后进入 LangGraph 链接链路，完成候选召回、重排、NIL 判断、"
-                f"共指处理和复核标记。总计 mention={summary.total_mentions}，"
-                f"linked={summary.linked_count}，ambiguous={ambiguous_count}，"
-                f"nil={nil_count}，review={review_count}。"
+                f"4. 大模型候选复核：本轮有 {llm_rerank_count} 个实体触发候选级复核。"
+                if llm_rerank_count
+                else "4. 大模型候选复核：本轮未触发候选级复核。"
             ),
         ]
-        if llm_rerank_count:
-            lines.append(f"候选分数接近或语义风险较高时，大模型复核参与了 {llm_rerank_count} 个实体，并把确认结果写入 evidence。")
-        else:
-            lines.append("本轮没有触发候选级大模型复核，主要依赖精确别名、上下文关键词、相似度和置信度阈值完成。")
         if coref_count:
-            lines.append(f"共指模块额外处理了 {coref_count} 个回指 mention。")
-        if review_count:
-            lines.append(f"有 {review_count} 个结果被标记为需要人工复核，通常是低置信或候选过近。")
-        lines.extend(["", "各实体的关键动作如下："])
+            lines.append(f"5. 共指处理：本轮共处理 {coref_count} 个回指 mention。")
+
+        lines.append("")
+        lines.append("各实体关键操作：")
         for result in link_response.results:
             lines.append(self._format_result_process_line(result))
         return "\n".join(lines)
 
     def _format_result_process_line(self, result: LinkResult) -> str:
         if result.entity:
-            target = f"{result.entity.canonical_name}({result.entity.entity_id})"
+            target = f"{result.entity.canonical_name}({result.entity.entity_id},{result.entity.entity_type.value})"
         else:
             target = "-"
+        mention_type = result.mention_type.value if getattr(result, "mention_type", None) else "UNKNOWN"
         operations = self._summarize_result_operations(result)
         return (
-            f"- {result.surface_form} {result.mention_id}: "
-            f"{result.link_status.value} -> {target}，"
-            f"置信度={result.confidence:.3f}；操作：{operations}"
+            f"- {result.surface_form} {result.mention_id}: mention_type={mention_type}，"
+            f"status={result.link_status.value} -> {target}，confidence={result.confidence:.3f}，"
+            f"操作={operations}"
         )
+
+    def _prepare_link_request(
+        self,
+        link_request: LinkRequest,
+        mention_hints: dict[str, MentionHint],
+        warnings: list[str],
+    ) -> tuple[WorkflowLinkRequest, dict[str, dict[str, Any]]]:
+        workflow_request, mention_type_diagnostics = self.link_service.prepare_request(
+            link_request,
+            mention_hints,
+        )
+        if mention_type_diagnostics:
+            llm_typed = sum(1 for item in mention_type_diagnostics.values() if item.get("status") == "llm")
+            heuristic_typed = sum(
+                1 for item in mention_type_diagnostics.values() if item.get("status") == "heuristic"
+            )
+            if llm_typed:
+                warnings.append(f"mention_type_llm={llm_typed}")
+            if heuristic_typed:
+                warnings.append(f"mention_type_heuristic={heuristic_typed}")
+        return workflow_request, mention_type_diagnostics
 
     def _summarize_result_operations(self, result: LinkResult) -> str:
         ops: list[str] = []
         for evidence in result.evidence:
             detail = evidence.detail
-            if evidence.evidence_type.value == "canonical_match":
+            kind = evidence.evidence_type.value
+            if kind == "canonical_match":
                 ops.append("标准名精确命中")
-            elif evidence.evidence_type.value == "alias_match":
+            elif kind == "alias_match":
                 ops.append("别名精确命中")
-            elif evidence.evidence_type.value == "former_name_match":
-                ops.append("曾用名命中")
-            elif evidence.evidence_type.value == "similarity_match":
-                ops.append("相似度召回")
-            elif evidence.evidence_type.value == "context_match":
+            elif kind == "former_name_match":
+                ops.append("曾用名精确命中")
+            elif kind == "similarity_match":
+                ops.append("语义向量召回" if "语义向量召回" in detail else "模糊召回")
+            elif kind == "context_match":
                 ops.append("上下文关键词支持")
-            elif evidence.evidence_type.value == "type_match":
-                ops.append("实体类型一致")
-            elif evidence.evidence_type.value == "coreference":
+            elif kind == "type_match":
+                ops.append("类型一致")
+            elif kind == "coreference":
                 ops.append("共指回链")
-            elif evidence.evidence_type.value == "model_inference":
+            elif kind == "model_inference":
                 if "大模型复核" in detail:
                     ops.append("大模型候选复核")
                 elif "human_review_required" in detail:
-                    ops.append("低置信/歧义，标记人工复核")
-                elif "llm_alias_expansion" in detail:
-                    ops.append("候选别名扩展")
+                    ops.append("标记人工复核")
                 elif "alias_prior_support" in detail:
                     ops.append("别名先验支持")
                 elif "同名重复实体" in detail:
                     ops.append("同名候选去噪")
+                elif "模糊召回结果已通过上下文验证" in detail:
+                    ops.append("模糊召回上下文验证")
                 else:
-                    ops.append("模型/规则推断")
+                    ops.append("模型或规则推断")
         if result.coreference:
             ops.append(f"共指来源 {result.coreference.resolved_from}")
         if result.link_status.value == "nil":
-            ops.append("无可靠库内实体，输出 NIL")
+            ops.append("输出 NIL")
         if not ops and result.candidates:
-            ops.append("候选召回后按置信度排序")
+            ops.append("候选召回后按分数排序")
         if not ops:
             ops.append("未获得有效候选")
         return " -> ".join(dict.fromkeys(ops))
 
-    def _build_messages(self, req: AgentChatRequest, selected_kb_id: str | None, selected_kb_version: str | None) -> list[dict[str, str]]:
+    def _build_messages(
+        self,
+        req: AgentChatRequest,
+        selected_kb_id: str | None,
+        selected_kb_version: str | None,
+    ) -> list[dict[str, str]]:
         kbs = self._list_kbs_lightweight()[:20]
         system = (
-            "你是课题10实体链接智能体的对话理解层。你的任务是把用户自然语言转换成严格符合后端接口的 LinkRequest JSON，"
-            "必要时也给用户中文回复。\n"
+            "你是课题10实体链接智能体的对话理解层。你的任务是把用户自然语言转换成严格符合后端协议的 LinkRequest JSON，必要时给出中文回复。\n"
             "只返回 JSON object，不要返回 Markdown。\n"
-            "输出 schema：{\n"
+            "输出 schema:\n"
+            "{\n"
             '  "intent": "link|switch_kb|switch_model|upload_kb|chat|help",\n'
             '  "reply": "给用户看的中文回复",\n'
             '  "kb_id": "可选，切换知识库时填写",\n'
             '  "kb_version": "可选",\n'
-            '  "model": "可选，切换大模型时填写",\n'
+            '  "model": "可选，切换模型时填写",\n'
             '  "link_request": null 或 LinkRequest 对象\n'
             "}\n"
-            "必须先判断 intent：只有用户明确要求做实体链接，并且同时提供原文文本和要链接的实体/mention 时，intent 才能是 link。"
-            "问候、闲聊、问怎么使用、解释概念、讨论项目、切换知识库、切换模型或上传知识库，都不要生成 link_request，必须令 link_request=null。\n"
-            "LinkRequest 必须满足：schema_version='v1'；request_id 可先留空；text.content 必须是用户给出的原文；"
-            "text.language 默认 zh；mentions 必须是数组，每个 mention 包含 mention_id、surface_form、start_offset、end_offset；"
-            "mention 可选字段包括 entity_type 和 candidate_aliases。candidate_aliases 用于保存你根据上下文推断出的候选标准名或别名，"
-            "例如“李导演的《断背山》”中，李导演可给 candidate_aliases=[\"李安\"]，但不要无根据扩展。\n"
-            "knowledge_base 使用当前选中的 kb_id/kb_version，除非用户明确要求切换；options 保持默认即可。\n"
-            "如果用户说“文本是/句子是/内容是...，实体是/mention 是...”，intent=link，并提取实体为 mentions。"
-            "如果用户只说换知识库，intent=switch_kb；只说换模型，intent=switch_model；说上传知识库，intent=upload_kb。"
-            "不要虚构知识库 ID；如果信息不足以链接，intent=chat 并用 reply 追问缺少的文本或实体。"
+            "只有当用户明确要求做实体链接，并且同时提供了原文和实体列表时，intent 才能是 link。\n"
+            "问候、帮助、解释、切换知识库、切换模型、上传知识库时，都不要生成 link_request。\n"
+            "LinkRequest 规则：schema_version 固定为 v1；request_id 可留空；text.content 使用用户原文；"
+            "text.language 默认 zh；mentions 是数组，每个 mention 只能包含 mention_id、surface_form、start_offset、end_offset 四个字段；"
+            "不要输出 entity_type 或其他内部字段；knowledge_base 使用当前选中的 kb_id 和 kb_version；options 保持默认即可。\n"
+            "如果信息不足以链接，intent=chat，并在 reply 中指出缺少原文或实体。"
         )
         context = {
             "current_kb": {"kb_id": selected_kb_id, "kb_version": selected_kb_version},
             "available_kbs": kbs,
             "current_options": req.options.model_dump(),
         }
-        messages = [
+        messages: list[dict[str, str]] = [
             {"role": "system", "content": system},
             {"role": "system", "content": "当前上下文：" + json.dumps(context, ensure_ascii=False)},
         ]
         for item in req.history[-8:]:
-            if item.role in {"user", "assistant"} and item.content:
+            if isinstance(item, AgentMessage) and item.role in {"user", "assistant"} and item.content:
                 messages.append({"role": item.role, "content": item.content[:1200]})
         messages.append({"role": "user", "content": req.message})
         return messages
@@ -570,7 +600,7 @@ class AgentChatService:
         selected_kb_version: str | None,
         req: AgentChatRequest,
         warnings: list[str],
-    ) -> LinkRequest:
+    ) -> tuple[LinkRequest, dict[str, MentionHint]]:
         if not isinstance(payload, dict):
             raise AgentChatError("INVALID_LINK_REQUEST", "link_request 必须是 JSON object。")
 
@@ -578,7 +608,7 @@ class AgentChatService:
         text_obj = data.get("text") if isinstance(data.get("text"), dict) else {}
         content = str(text_obj.get("content") or data.get("text_content") or "").strip()
         if not content:
-            raise AgentChatError("MISSING_TEXT", "LLM 没有提取到 text.content。")
+            raise AgentChatError("MISSING_TEXT", "没有提取到 text.content。")
 
         kb_obj = data.get("knowledge_base") if isinstance(data.get("knowledge_base"), dict) else {}
         kb_id = str(kb_obj.get("kb_id") or selected_kb_id or "").strip()
@@ -587,9 +617,9 @@ class AgentChatService:
             raise AgentChatError("MISSING_KB", "当前没有选中知识库，请先上传或选择知识库。")
 
         mentions_payload = data.get("mentions") or data.get("entities") or []
-        mentions = self._normalize_mentions(mentions_payload, content, warnings)
+        mentions, mention_hints = self._normalize_mentions(mentions_payload, content, warnings)
         if not mentions:
-            raise AgentChatError("EMPTY_MENTIONS", "LLM 没有提取到 mentions。")
+            raise AgentChatError("EMPTY_MENTIONS", "没有提取到 mentions。")
 
         normalized = {
             "schema_version": "v1",
@@ -600,19 +630,25 @@ class AgentChatService:
             "options": req.options.model_dump(),
         }
         try:
-            return LinkRequest(**normalized)
+            return LinkRequest(**normalized), mention_hints
         except ValidationError as exc:
             raise AgentChatError("LINK_REQUEST_VALIDATION_FAILED", str(exc)) from exc
 
-    def _normalize_mentions(self, mentions_payload: Any, content: str, warnings: list[str]) -> list[dict[str, Any]]:
+    def _normalize_mentions(
+        self,
+        mentions_payload: Any,
+        content: str,
+        warnings: list[str],
+    ) -> tuple[list[dict[str, Any]], dict[str, MentionHint]]:
         if isinstance(mentions_payload, str):
             mentions_payload = self._split_mentions(mentions_payload)
         if not isinstance(mentions_payload, list):
-            return []
+            return [], {}
 
         mentions: list[dict[str, Any]] = []
+        mention_hints: dict[str, MentionHint] = {}
         cursor = 0
-        for idx, item in enumerate(mentions_payload, start=1):
+        for item in mentions_payload:
             if isinstance(item, str):
                 surface = item.strip()
             elif isinstance(item, dict):
@@ -630,63 +666,32 @@ class AgentChatService:
                 start = 0
             end = start + len(surface)
             cursor = max(cursor, end)
+
+            mention_id = f"m{len(mentions) + 1}"
             mentions.append(
-                self._build_mention_payload(
-                    item,
-                    mention_id=f"m{len(mentions) + 1}",
-                    surface_form=surface,
-                    start_offset=start,
-                    end_offset=end,
-                )
+                {
+                    "mention_id": mention_id,
+                    "surface_form": surface,
+                    "start_offset": start,
+                    "end_offset": end,
+                }
             )
-        return mentions
 
-    def _build_mention_payload(self, item: Any, **base: Any) -> dict[str, Any]:
+            hint = self._build_mention_hint(item)
+            if hint:
+                mention_hints[mention_id] = hint
+        return mentions, mention_hints
+
+    def _build_mention_hint(self, item: Any) -> MentionHint | None:
         if not isinstance(item, dict):
-            return base
+            return None
 
-        entity_type = item.get("entity_type") or item.get("type")
-        if entity_type:
-            base["entity_type"] = self._normalize_entity_type(str(entity_type))
-
-        aliases = item.get("candidate_aliases") or item.get("aliases") or item.get("expanded_aliases") or []
-        if isinstance(aliases, str):
-            aliases = self._split_mentions(aliases)
-        if isinstance(aliases, list):
-            normalized_aliases = []
-            seen = {base["surface_form"].strip()}
-            for alias in aliases:
-                alias_text = str(alias).strip()
-                if alias_text and alias_text not in seen:
-                    seen.add(alias_text)
-                    normalized_aliases.append(alias_text)
-            if normalized_aliases:
-                base["candidate_aliases"] = normalized_aliases
-
-        return base
-
-    def _normalize_entity_type(self, value: str) -> str:
-        value = value.strip().upper()
-        mapping = {
-            "人": "PERSON",
-            "人物": "PERSON",
-            "导演": "PERSON",
-            "PERSON": "PERSON",
-            "组织": "ORG",
-            "机构": "ORG",
-            "公司": "ORG",
-            "企业": "ORG",
-            "ORG": "ORG",
-            "地点": "LOC",
-            "地名": "LOC",
-            "城市": "LOC",
-            "LOC": "LOC",
-            "作品": "OTHER",
-            "电影": "OTHER",
-            "书籍": "OTHER",
-            "OTHER": "OTHER",
-        }
-        return mapping.get(value, "OTHER")
+        hint = MentionHint(
+            mention_type=item.get("mention_type") or item.get("entity_type") or item.get("type"),
+        )
+        if hint.mention_type.value == "UNKNOWN":
+            return None
+        return hint
 
     def _select_kb(self, kb_id: str | None, kb_version: str) -> tuple[str | None, str | None]:
         if kb_id:
@@ -725,7 +730,7 @@ class AgentChatService:
             return {}
 
     def _split_mentions(self, text: str) -> list[str]:
-        parts = re.split(r"[,;|/\n\r\t\u3001\uff0c\uff1b]+", text)
+        parts = re.split(r"[,;|/\n\r\t、，；]+", text)
         if len(parts) == 1:
             parts = re.split(r"\s+", text)
         return [part.strip() for part in parts if part.strip()]

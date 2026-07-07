@@ -1,11 +1,13 @@
 from __future__ import annotations
+
+import json
 from pathlib import Path
 from typing import Optional
-import json
+
 from app.core.candidate import CandidateResult
 from app.core.kb_profile import ScoreWeights
 from app.models.entity import Entity
-from app.models.request import MentionInput
+from app.models.request import WorkflowMentionInput as MentionInput
 from app.storage.index import normalize
 
 _GENERIC_CONTEXT_TERMS = {
@@ -56,10 +58,10 @@ def _description_overlap(context: str, entity: Entity) -> float:
     ctx = normalize(context)
     if not ctx or not desc:
         return 0.0
-    ctx_chars = {c for c in ctx if "一" <= c <= "鿿"}
+    ctx_chars = {char for char in ctx if "\u4e00" <= char <= "\u9fff"}
     if not ctx_chars:
         return 0.0
-    matched = sum(1 for c in ctx_chars if c in desc)
+    matched = sum(1 for char in ctx_chars if char in desc)
     return min(1.0, matched / max(4, len(ctx_chars)))
 
 
@@ -76,8 +78,6 @@ def _entity_text(entity: Entity) -> str:
 
 
 def _domain_context_score(context: str, entity: Entity) -> float:
-    """Small semantic hint layer for noisy CCKS homonyms such as film/book/song senses."""
-
     ctx = normalize(context)
     entity_text = normalize(_entity_text(entity))
     if not ctx or not entity_text:
@@ -108,60 +108,40 @@ def rescore(
     entity = candidate.entity
     weights = weights or ScoreWeights()
 
-    # 上下文匹配分
     hits = _keyword_hits(context, entity.keywords)
     ctx_score = min(1.0, len(hits) / max(1, min(len(entity.keywords), 4))) if entity.keywords else 0.0
     ctx_score = max(ctx_score, _description_overlap(context, entity))
     ctx_score = max(ctx_score, _domain_context_score(context, entity))
 
-    # 先验概率加分
     prior_score = alias_prior.score(mention.surface_form, entity.entity_id) if alias_prior else 0.0
     prior_bonus = weights.prior_weight * prior_score
 
     reasons = set(candidate.reasons)
-    type_bonus = weights.type_bonus if mention.entity_type and mention.entity_type == entity.entity_type else 0.0
+    mention_type = getattr(mention.mention_type, "value", "")
+    has_explicit_mention_type = bool(mention_type and mention_type != "UNKNOWN")
+    type_bonus = weights.type_bonus if has_explicit_mention_type and mention_type == entity.entity_type.value else 0.0
     inferred_type_bonus = (
         weights.inferred_type_bonus
-        if not mention.entity_type
+        if not has_explicit_mention_type
         and _looks_like_location_context(mention.surface_form, context)
         and entity.entity_type.value == "LOC"
         else 0.0
     )
-    canonical_bonus = weights.canonical_bonus if normalize(mention.surface_form) == normalize(entity.canonical_name) else 0.0
-    expansion_bonus = weights.expansion_bonus if "llm_alias_expansion" in reasons else 0.0
-    expansion_canonical_bonus = (
-        weights.expansion_canonical_bonus
-        if "llm_alias_expansion" in reasons
-        and normalize(candidate.matched_name) == normalize(entity.canonical_name)
-        else 0.0
-    )
-    dirty_expansion_penalty = (
-        weights.dirty_expansion_penalty
-        if "llm_alias_expansion" in reasons
-        and normalize(candidate.matched_name) != normalize(entity.canonical_name)
-        else 0.0
-    )
-    expansion_context_validated = "llm_alias_expansion" in reasons and (
-        "contextual_alias_expansion" in reasons
-        or bool(_meaningful_keyword_hits(hits))
-        or prior_score > 0
-        or inferred_type_bonus > 0
+    canonical_bonus = (
+        weights.canonical_bonus if normalize(mention.surface_form) == normalize(entity.canonical_name) else 0.0
     )
 
     final = max(
         0.0,
         min(
             1.0,
-        weights.alias_weight * candidate.alias_similarity
-        + weights.context_weight * ctx_score
-        + type_bonus
-        + inferred_type_bonus
-        + canonical_bonus
-        + expansion_bonus
-        + expansion_canonical_bonus
-        + prior_bonus,
-        )
-        - dirty_expansion_penalty,
+            weights.alias_weight * candidate.alias_similarity
+            + weights.context_weight * ctx_score
+            + type_bonus
+            + inferred_type_bonus
+            + canonical_bonus
+            + prior_bonus,
+        ),
     )
     candidate.score = round(final, 3)
     if hits and "context_keyword_support" not in candidate.reasons:
@@ -174,14 +154,11 @@ def rescore(
         candidate.reasons.append("entity_type_inferred_from_context")
     if canonical_bonus and "canonical_bonus" not in candidate.reasons:
         candidate.reasons.append("canonical_bonus")
-    if expansion_canonical_bonus and "expansion_canonical_support" not in candidate.reasons:
-        candidate.reasons.append("expansion_canonical_support")
-    if expansion_context_validated and "expansion_context_validated" not in candidate.reasons:
-        candidate.reasons.append("expansion_context_validated")
-    if dirty_expansion_penalty and "dirty_alias_penalty" not in candidate.reasons:
-        candidate.reasons.append("dirty_alias_penalty")
     if prior_score > 0 and "alias_prior_support" not in candidate.reasons:
         candidate.reasons.append("alias_prior_support")
+    if reasons and "fuzzy_name_recall" in reasons and _meaningful_keyword_hits(hits):
+        if "fuzzy_context_validated" not in candidate.reasons:
+            candidate.reasons.append("fuzzy_context_validated")
     return candidate
 
 

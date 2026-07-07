@@ -8,7 +8,7 @@ from app.core.kb_profile import (
 )
 from app.models.entity import Entity
 from app.models.enums import EntityType
-from app.models.request import LinkOptions, LinkRequest
+from app.models.request import LinkOptions, WorkflowLinkRequest as LinkRequest
 from app.services.link_service import LinkService
 from app.storage.kb_store import KBStore
 

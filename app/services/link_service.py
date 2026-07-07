@@ -22,12 +22,19 @@ from app.core.kb_profile import (
 )
 from app.core.scorer import AliasPrior, rescore
 from app.models.enums import EvidenceType, LinkStatus
-from app.models.request import LinkOptions, LinkRequest, MentionInput
+from app.models.request import (
+    LinkOptions,
+    LinkRequest as PublicLinkRequest,
+    MentionHint,
+    WorkflowLinkRequest,
+    WorkflowMentionInput as MentionInput,
+)
 from app.models.response import (
     CandidateItem, CoreferenceChain, EvidenceItem, EntityRef,
     LinkResponse, LinkResult, LinkSummary, LinkTrace,
 )
 from app.services.llm_reranker import LLMReranker
+from app.services.mention_type_resolver import MentionTypeResolver
 from app.storage.index import NameIndex
 from app.storage.kb_store import KBStore
 from app.storage.vector_index import VectorIndex
@@ -36,17 +43,21 @@ logger = logging.getLogger("entity_link_agent")
 
 
 class LinkState(TypedDict, total=False):
-    request: LinkRequest
+    request: WorkflowLinkRequest
     entities_index: NameIndex
     vector_index: Optional[VectorIndex]
     effective_options: LinkOptions
     kb_profile: KBProfile
     score_weights: ScoreWeights
+    recall_by_id: dict[str, candidate_mod.MentionRecallResult]
+    mention_routes: dict[str, str]
+    routing_buckets: dict[str, list[str]]
     candidates_by_id: dict[str, list[candidate_mod.CandidateResult]]
     results: list[LinkResult]
     coref_chains: list[CoreferenceChain]
     llm_rerank_count: int
     llm_rerank_diagnostics: dict[str, Any]
+    mention_type_diagnostics: dict[str, dict[str, Any]]
     validation_error: Optional[str]
 
 
@@ -58,20 +69,32 @@ class LinkService:
         alias_prior: Optional[AliasPrior] = None,
         embedder=None,
         llm_reranker: Optional[LLMReranker] = None,
+        mention_type_resolver: Optional[MentionTypeResolver] = None,
     ) -> None:
         self.store = store
         self.config = config
         self.alias_prior = alias_prior
         self.embedder = embedder
         self.llm_reranker = llm_reranker or LLMReranker(config)
+        self.mention_type_resolver = mention_type_resolver or MentionTypeResolver(config)
         self.graph = self._build_graph()
 
-    def link(self, request: LinkRequest) -> LinkResponse:
+    def link(self, request: PublicLinkRequest | WorkflowLinkRequest) -> LinkResponse:
+        return self.link_with_diagnostics(request)
+
+    def link_with_diagnostics(
+        self,
+        request: PublicLinkRequest | WorkflowLinkRequest,
+        mention_type_diagnostics: Optional[dict[str, dict[str, Any]]] = None,
+        mention_hints: Optional[dict[str, MentionHint]] = None,
+    ) -> LinkResponse:
+        if mention_type_diagnostics is None:
+            request, mention_type_diagnostics = self.prepare_request(request, mention_hints)
         logger.info("=" * 60)
         logger.info("▶ 实体链接开始  request_id=%s  kb=%s/%s  mentions=%d",
                      request.request_id, request.knowledge_base.kb_id,
                      request.knowledge_base.kb_version, len(request.mentions))
-        state = self.graph.invoke({"request": request})
+        state = self.graph.invoke({"request": request, "mention_type_diagnostics": mention_type_diagnostics})
         if state.get("validation_error"):
             logger.error("✘ 链接失败: %s", state["validation_error"])
             raise ValueError(state["validation_error"])
@@ -81,12 +104,26 @@ class LinkService:
         logger.info("=" * 60)
         return resp
 
+    def prepare_request(
+        self,
+        request: PublicLinkRequest | WorkflowLinkRequest,
+        mention_hints: Optional[dict[str, MentionHint]] = None,
+    ) -> tuple[WorkflowLinkRequest, dict[str, dict[str, Any]]]:
+        if not isinstance(request, WorkflowLinkRequest):
+            request = WorkflowLinkRequest.from_public(request, mention_hints)
+        if not self.store.exists(request.knowledge_base.kb_id):
+            return request, {}
+        entities = self.store.load_entities(request.knowledge_base.kb_id)
+        if not entities:
+            return request, {}
+        return self.mention_type_resolver.enrich(request, NameIndex(entities))
+
     def _build_graph(self):
         builder = StateGraph(LinkState)
         builder.add_node("validate", RunnableLambda(self._validate, name="validate"))
         builder.add_node("load_kb", RunnableLambda(self._load_kb, name="load_kb"))
         builder.add_node("generate_candidates", RunnableLambda(self._generate_candidates, name="generate_candidates"))
-        builder.add_node("nil_fallback", RunnableLambda(self._nil_fallback, name="nil_fallback"))
+        builder.add_node("route_mentions", RunnableLambda(self._route_mentions, name="route_mentions"))
         builder.add_node("rerank", RunnableLambda(self._rerank, name="rerank"))
         builder.add_node("llm_rerank", RunnableLambda(self._llm_rerank, name="llm_rerank"))
         builder.add_node("resolve", RunnableLambda(self._resolve, name="resolve"))
@@ -95,8 +132,8 @@ class LinkService:
         builder.add_edge(START, "validate")
         builder.add_conditional_edges("validate", self._route_validate, {"ok": "load_kb", "error": END})
         builder.add_edge("load_kb", "generate_candidates")
-        builder.add_conditional_edges("generate_candidates", self._route_candidates, {"has_candidates": "rerank", "empty": "nil_fallback"})
-        builder.add_edge("nil_fallback", END)
+        builder.add_edge("generate_candidates", "route_mentions")
+        builder.add_edge("route_mentions", "rerank")
         builder.add_edge("rerank", "llm_rerank")
         builder.add_edge("llm_rerank", "resolve")
         builder.add_edge("resolve", "coreference")
@@ -171,40 +208,84 @@ class LinkService:
         index: NameIndex = state["entities_index"]
         entities = index.all_entities()
         trigger_terms = self.config.coreference_terms
+        candidate_pool_limit = options.top_k + getattr(self.config, "candidate_pool_extra", 5)
         logger.info("  [3/6] 候选召回  mentions=%d  kb_entities=%d", len(req.mentions), len(entities))
-        result = {}
+        result: dict[str, candidate_mod.MentionRecallResult] = {}
         previous_mentions: list[MentionInput] = []
         for m in req.mentions:
             if coref_mod.should_skip_candidate_retrieval(m, previous_mentions, trigger_terms):
                 logger.info("    mention=%s → 共指触发词，跳过候选召回", m.mention_id)
-                result[m.mention_id] = []
+                result[m.mention_id] = candidate_mod.skipped_recall(m)
             else:
-                cands = candidate_mod.retrieve(
+                recall_result = candidate_mod.recall(
                     m, index, entities, options.top_k,
                     context=req.text.content,
                     embedder=self.embedder,
                     vector_index=state.get("vector_index"),
+                    candidate_pool_limit=candidate_pool_limit,
                 )
-                result[m.mention_id] = cands
-                if cands:
-                    logger.info("    mention=%s → %d 个候选, top=%.3f(%s) [%s]",
-                               m.mention_id, len(cands), cands[0].score,
-                               cands[0].entity.canonical_name, cands[0].match_source)
+                result[m.mention_id] = recall_result
+                if recall_result.candidates:
+                    top = recall_result.candidates[0]
+                    logger.info(
+                        "    mention=%s → %d 个候选, top=%s [%s/%s]",
+                        m.mention_id,
+                        len(recall_result.candidates),
+                        top.entity_id,
+                        top.recall_source,
+                        top.match_slot,
+                    )
                 else:
                     logger.info("    mention=%s → 0 个候选", m.mention_id)
             previous_mentions.append(m)
-        return {"candidates_by_id": result}
+        return {"recall_by_id": result}
 
-    def _route_candidates(self, state: LinkState) -> str:
-        has = any(state["candidates_by_id"].values())
-        if not has:
-            logger.info("  [3/6] 所有 mention 均无候选，转入 NIL 回退")
-        return "has_candidates" if has else "empty"
+    def _route_mentions(self, state: LinkState) -> dict:
+        logger.info("  [3.5/6] mention 路由...")
+        recall_by_id = state.get("recall_by_id", {})
+        mention_routes: dict[str, str] = {}
+        routing_buckets = {
+            candidate_mod.ROUTE_DIRECT_LINK: [],
+            candidate_mod.ROUTE_NEED_DISAMBIGUATION: [],
+            candidate_mod.ROUTE_NIL_PENDING: [],
+            candidate_mod.ROUTE_COREFERENCE_PENDING: [],
+        }
 
-    def _nil_fallback(self, state: LinkState) -> dict:
-        logger.info("  [✘] NIL 回退：所有 mention 标记为 nil")
-        results = [LinkResult(mention_id=m.mention_id, surface_form=m.surface_form, link_status=LinkStatus.nil) for m in state["request"].mentions]
-        return {"results": results, "coref_chains": []}
+        for mention in state["request"].mentions:
+            recall_result = recall_by_id.get(
+                mention.mention_id,
+                candidate_mod.skipped_recall(
+                    mention,
+                    recall_status=candidate_mod.RECALL_STATUS_EMPTY,
+                ),
+            )
+            if recall_result.recall_status == candidate_mod.RECALL_STATUS_SKIPPED_COREFERENCE:
+                route = candidate_mod.ROUTE_COREFERENCE_PENDING
+            elif not recall_result.candidates:
+                route = candidate_mod.ROUTE_NIL_PENDING
+            elif (
+                len(recall_result.candidates) == 1
+                and recall_result.candidates[0].recall_source == candidate_mod.RECALL_SOURCE_EXACT
+            ):
+                route = candidate_mod.ROUTE_DIRECT_LINK
+            else:
+                route = candidate_mod.ROUTE_NEED_DISAMBIGUATION
+
+            mention_routes[mention.mention_id] = route
+            routing_buckets[route].append(mention.mention_id)
+            logger.info("    mention=%s → %s", mention.mention_id, route)
+
+        logger.info(
+            "  [3.5/6] 路由统计: direct=%d  disambiguation=%d  nil=%d  coreference=%d",
+            len(routing_buckets[candidate_mod.ROUTE_DIRECT_LINK]),
+            len(routing_buckets[candidate_mod.ROUTE_NEED_DISAMBIGUATION]),
+            len(routing_buckets[candidate_mod.ROUTE_NIL_PENDING]),
+            len(routing_buckets[candidate_mod.ROUTE_COREFERENCE_PENDING]),
+        )
+        return {
+            "mention_routes": mention_routes,
+            "routing_buckets": routing_buckets,
+        }
 
     def _rerank(self, state: LinkState) -> dict:
         req = state["request"]
@@ -213,8 +294,13 @@ class LinkService:
         context = req.text.content
         logger.info("  [4/6] 重排序...")
         rescored: dict[str, list[candidate_mod.CandidateResult]] = {}
+        disambiguation_ids = set(
+            state.get("routing_buckets", {}).get(candidate_mod.ROUTE_NEED_DISAMBIGUATION, [])
+        )
         for m in req.mentions:
-            cands = state["candidates_by_id"].get(m.mention_id, [])
+            if m.mention_id not in disambiguation_ids:
+                continue
+            cands = self._materialize_recalled_candidates(state, m)
             rescored[m.mention_id] = sorted(
                 [rescore(c, m, context, self.alias_prior, weights) for c in cands],
                 key=candidate_mod.rank_key, reverse=True,
@@ -274,20 +360,97 @@ class LinkService:
         options = state.get("effective_options", req.options)
         logger.info("  [5/6] 决策解析 (nil_threshold=%.3f)...", options.nil_threshold)
         results: list[LinkResult] = []
+        mention_type_diagnostics = state.get("mention_type_diagnostics", {})
+        mention_routes = state.get("mention_routes", {})
+        weights = state.get("score_weights", ScoreWeights())
         for m in req.mentions:
+            route = mention_routes.get(m.mention_id, candidate_mod.ROUTE_NIL_PENDING)
+            if route == candidate_mod.ROUTE_DIRECT_LINK:
+                cands = self._materialize_recalled_candidates(state, m)
+                if not cands:
+                    logger.info("    mention=%s → NIL (direct link candidate missing)", m.mention_id)
+                    results.append(
+                        LinkResult(
+                            mention_id=m.mention_id,
+                            surface_form=m.surface_form,
+                            mention_type=m.mention_type,
+                            link_status=LinkStatus.nil,
+                        )
+                    )
+                    continue
+                top = rescore(cands[0], m, req.text.content, self.alias_prior, weights)
+                logger.info("    mention=%s → DIRECT_LINK → %s (置信度=%.3f) [%s]",
+                           m.mention_id, top.entity.canonical_name, top.score, top.match_source)
+                evid = evidence_mod.build_evidence(top, req.text.content) if options.return_evidence else []
+                evid = self._append_mention_type_evidence(
+                    evid,
+                    m,
+                    mention_type_diagnostics.get(m.mention_id),
+                    options.return_evidence,
+                )
+                results.append(LinkResult(
+                    mention_id=m.mention_id, surface_form=m.surface_form,
+                    mention_type=m.mention_type,
+                    link_status=LinkStatus.linked,
+                    entity=EntityRef(entity_id=top.entity.entity_id, canonical_name=top.entity.canonical_name, entity_type=top.entity.entity_type),
+                    confidence=top.score,
+                    candidates=self._fmt_candidates(cands, options),
+                    evidence=evid,
+                ))
+                continue
+
+            if route == candidate_mod.ROUTE_NIL_PENDING:
+                logger.info("    mention=%s → NIL (no recalled candidates)", m.mention_id)
+                results.append(
+                    LinkResult(
+                        mention_id=m.mention_id,
+                        surface_form=m.surface_form,
+                        mention_type=m.mention_type,
+                        link_status=LinkStatus.nil,
+                    )
+                )
+                continue
+
+            if route == candidate_mod.ROUTE_COREFERENCE_PENDING:
+                logger.info("    mention=%s → COREFERENCE_PENDING", m.mention_id)
+                results.append(
+                    LinkResult(
+                        mention_id=m.mention_id,
+                        surface_form=m.surface_form,
+                        mention_type=m.mention_type,
+                        link_status=LinkStatus.nil,
+                    )
+                )
+                continue
+
             cands = state["candidates_by_id"].get(m.mention_id, [])
             status, top = nil_detector.decide(cands, options)
             if status == "nil" or top is None:
                 logger.info("    mention=%s → NIL (最高分=%.3f < %.2f)",
                            m.mention_id, cands[0].score if cands else 0, options.nil_threshold)
-                results.append(LinkResult(mention_id=m.mention_id, surface_form=m.surface_form, link_status=LinkStatus.nil, candidates=self._fmt_candidates(cands, options)))
+                results.append(
+                    LinkResult(
+                        mention_id=m.mention_id,
+                        surface_form=m.surface_form,
+                        mention_type=m.mention_type,
+                        link_status=LinkStatus.nil,
+                        candidates=self._fmt_candidates(cands, options),
+                    )
+                )
             else:
                 logger.info("    mention=%s → %s → %s (置信度=%.3f) [%s]",
                            m.mention_id, status.upper(), top.entity.canonical_name,
                            top.score, top.match_source)
                 evid = evidence_mod.build_evidence(top, req.text.content) if options.return_evidence else []
+                evid = self._append_mention_type_evidence(
+                    evid,
+                    m,
+                    mention_type_diagnostics.get(m.mention_id),
+                    options.return_evidence,
+                )
                 results.append(LinkResult(
                     mention_id=m.mention_id, surface_form=m.surface_form,
+                    mention_type=m.mention_type,
                     link_status=LinkStatus(status),
                     entity=EntityRef(entity_id=top.entity.entity_id, canonical_name=top.entity.canonical_name, entity_type=top.entity.entity_type),
                     confidence=top.score,
@@ -295,6 +458,30 @@ class LinkService:
                     evidence=evid,
                 ))
         return {"results": results}
+
+    def _materialize_recalled_candidates(
+        self,
+        state: LinkState,
+        mention: MentionInput,
+    ) -> list[candidate_mod.CandidateResult]:
+        recall_result = state.get("recall_by_id", {}).get(mention.mention_id)
+        if recall_result is None:
+            return []
+        req = state["request"]
+        options = state.get("effective_options", req.options)
+        index: NameIndex = state["entities_index"]
+        candidate_pool_limit = options.top_k + getattr(self.config, "candidate_pool_extra", 5)
+        return candidate_mod.materialize_recall(
+            mention,
+            recall_result,
+            index,
+            index.all_entities(),
+            options.top_k,
+            context=req.text.content,
+            embedder=self.embedder,
+            vector_index=state.get("vector_index"),
+            candidate_pool_limit=candidate_pool_limit,
+        )
 
     def _coreference(self, state: LinkState) -> dict:
         req = state["request"]
@@ -372,12 +559,42 @@ class LinkService:
         return False
 
     @staticmethod
+    def _append_mention_type_evidence(
+        evidence: list[EvidenceItem],
+        mention: MentionInput,
+        diagnostic: dict[str, Any] | None,
+        return_evidence: bool,
+    ) -> list[EvidenceItem]:
+        if not return_evidence or mention.mention_type.value == "UNKNOWN":
+            return evidence
+        status = str((diagnostic or {}).get("status") or "provided")
+        if status == "provided":
+            detail = f"mention 类型使用请求值：{mention.mention_type.value}"
+        elif status == "exact_match":
+            detail = f"mention 类型识别：{mention.mention_type.value}（精确候选类型反推）"
+        elif status == "heuristic":
+            detail = f"mention 类型识别：{mention.mention_type.value}（规则推断）"
+        elif status == "llm":
+            detail = f"mention 类型识别：{mention.mention_type.value}（大模型推断）"
+        else:
+            detail = f"mention 类型识别：{mention.mention_type.value}"
+        return list(evidence) + [EvidenceItem(evidence_type=EvidenceType.model_inference, detail=detail)]
+
+    @staticmethod
     def _fmt_candidates(cands: list[candidate_mod.CandidateResult], options: LinkOptions) -> list[CandidateItem]:
         if not options.return_candidates:
             return []
-        return [CandidateItem(entity_id=c.entity.entity_id, canonical_name=c.entity.canonical_name, score=c.score) for c in cands]
+        return [
+            CandidateItem(
+                entity_id=c.entity.entity_id,
+                canonical_name=c.entity.canonical_name,
+                entity_type=c.entity.entity_type,
+                score=c.score,
+            )
+            for c in cands
+        ]
 
-    def _build_response(self, request: LinkRequest, state: LinkState) -> LinkResponse:
+    def _build_response(self, request: WorkflowLinkRequest, state: LinkState) -> LinkResponse:
         results = state.get("results", [])
         chains = state.get("coref_chains", [])
         linked = sum(1 for r in results if r.link_status == LinkStatus.linked)
@@ -394,6 +611,14 @@ class LinkService:
                 else "llm_rerank_node_not_reached"
             )
             llm_diagnostics = {"status": "not_run", "reason": reason}
+        mention_type_diagnostics = state.get("mention_type_diagnostics", {})
+        mention_type_counts = {
+            "provided": sum(1 for item in mention_type_diagnostics.values() if item.get("status") == "provided"),
+            "exact_match": sum(1 for item in mention_type_diagnostics.values() if item.get("status") == "exact_match"),
+            "heuristic": sum(1 for item in mention_type_diagnostics.values() if item.get("status") == "heuristic"),
+            "llm": sum(1 for item in mention_type_diagnostics.values() if item.get("status") == "llm"),
+            "unknown": sum(1 for item in mention_type_diagnostics.values() if item.get("mention_type") == "UNKNOWN"),
+        }
         ambiguous = sum(1 for r in results if r.link_status == LinkStatus.ambiguous)
         review = sum(1 for r in results if self._needs_review(r, opts))
         return LinkResponse(
@@ -419,6 +644,8 @@ class LinkService:
                     "llm_rerank_status": llm_diagnostics.get("status"),
                     "llm_rerank_reason": llm_diagnostics.get("reason"),
                     "llm_rerank_diagnostics": llm_diagnostics,
+                    "mention_type_diagnostics": mention_type_diagnostics,
+                    "mention_type_counts": mention_type_counts,
                     "enable_nil": opts.enable_nil,
                     "enable_coreference": opts.enable_coreference,
                     "kb_profile": profile.to_dict() if profile else None,

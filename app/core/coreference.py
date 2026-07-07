@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import re
 from app.models.entity import Entity
-from app.models.request import MentionInput
+from app.models.request import WorkflowMentionInput as MentionInput
 from app.models.response import LinkResult, CoreferenceInfo, CoreferenceChain
 from app.models.enums import LinkStatus
 

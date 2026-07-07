@@ -11,7 +11,7 @@ def _svc():
     return get_agent_chat_service()
 
 
-@router.post("/chat", response_model=AgentChatResponse)
+@router.post("/chat", response_model=AgentChatResponse, response_model_exclude_none=True)
 def agent_chat(request: AgentChatRequest):
     try:
         return _svc().chat(request)

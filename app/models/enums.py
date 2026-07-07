@@ -24,3 +24,11 @@ class EntityType(str, Enum):
     PERSON = "PERSON"
     LOC = "LOC"
     OTHER = "OTHER"
+
+
+class MentionType(str, Enum):
+    ORG = "ORG"
+    PERSON = "PERSON"
+    LOC = "LOC"
+    OTHER = "OTHER"
+    UNKNOWN = "UNKNOWN"

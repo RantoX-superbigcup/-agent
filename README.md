@@ -93,7 +93,7 @@ entity_link_agent/
 │   │   ├── kb_service.py         # 知识库管理业务逻辑
 │   │   └── link_service.py       # 实体链接主流程（LangGraph 编排）
 │   ├── core/                     # 核心能力层（每文件一个能力，互相独立）
-│   │   ├── candidate.py          # 多源候选召回（精确名称 + 向量 + 模糊）
+│   │   ├── candidate.py          # 候选召回（精确名称 + 向量语义）
 │   │   ├── scorer.py             # 分档评分（按 match_source 选权重）
 │   │   ├── nil_detector.py       # NIL 判定（精确命中豁免）
 │   │   ├── coreference.py        # 共指消解（触发词前置处理）
@@ -120,7 +120,7 @@ entity_link_agent/
 │       ├── link_disambig.json     # 消歧测试
 │       ├── link_former_name.json  # 曾用名匹配测试
 │       ├── link_full.json         # 综合多类型测试
-│       ├── link_fuzzy.json        # 模糊匹配（调节 nil_threshold）
+│       ├── link_fuzzy.json        # 语义召回阈值样例（沿用旧文件名）
 │       ├── link_threshold.json    # 阈值边界测试
 │       ├── link_semantic.json     # 纯语义匹配测试
 │       ├── link_context_disambig.json
@@ -181,7 +181,7 @@ POST /api/v1/entity-link
 └───────┬──────────┘
         │
 ┌───────▼──────────┐
-│ 3. candidates    │  多源候选召回（精确名称 → 向量语义 → 模糊匹配）
+│ 3. candidates    │  候选召回（精确名称 → 向量语义）
 │                  │  触发词跳过候选，走共指消解
 └───────┬──────────┘
         │
@@ -213,7 +213,7 @@ POST /api/v1/entity-link
 retrieve(mention)
     ├── ① NameIndex.lookup()  → 精确命中 → score ≥ 0.88
     ├── ② FAISS.search()      → 向量相似 → score 0.5~0.85
-    └── ③ SequenceMatcher     → 模糊匹配 → score 0.35~0.9
+    └── ③ BGE 向量检索         → 语义召回 → cosine score
               │
               ▼
          合并去重，精确命中优先

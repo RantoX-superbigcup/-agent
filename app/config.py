@@ -25,6 +25,7 @@ class AppConfig:
         self.kb_dir = Path(settings.kb_dir)
         linker = yaml_cfg.get("linker", {})
         self.default_top_k: int = linker.get("default_top_k", 5)
+        self.candidate_pool_extra: int = linker.get("candidate_pool_extra", 5)
         self.nil_threshold: float = linker.get("nil_threshold", 0.6)
         self.ambiguity_margin: float = linker.get("ambiguity_margin", 0.08)
         self.linker_version: str = linker.get("version", "v1")

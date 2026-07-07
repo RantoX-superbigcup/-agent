@@ -9,7 +9,7 @@ from typing import Any
 
 from app.config import AppConfig
 from app.core import candidate as candidate_mod
-from app.models.request import LinkOptions, LinkRequest
+from app.models.request import LinkOptions, WorkflowLinkRequest as LinkRequest
 from app.services.llm_provider import (
     SUPPORTED_API_KEY_ENV_NAMES,
     append_chat_completions_path,
@@ -167,7 +167,11 @@ class LLMReranker:
                 {
                     "mention_id": mention_id,
                     "surface_form": mention.surface_form,
-                    "mention_type": mention.entity_type.value if mention.entity_type else None,
+                    "mention_type": (
+                        mention.mention_type.value
+                        if mention.mention_type and mention.mention_type.value != "UNKNOWN"
+                        else None
+                    ),
                     "candidates": [
                         {
                             "entity_id": candidate.entity.entity_id,
@@ -196,7 +200,7 @@ class LLMReranker:
             return True
         if top.score < options.nil_threshold + 0.12:
             return True
-        if top.match_source == "similarity_match" and second.score >= options.nil_threshold:
+        if candidate_mod.trusted_exact_rank(top) == 0 and second.score >= options.nil_threshold:
             return True
         return False
 

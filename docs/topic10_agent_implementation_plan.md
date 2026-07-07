@@ -18,7 +18,7 @@
 
 对外形态分为两种：一种是 FastAPI 服务，用于平台或其他系统通过 HTTP API 调用；另一种是终端 CLI Agent，用于课堂展示、答辩演示和交互式调试。二者共享同一套实体链接核心流程，避免出现接口结果和终端结果不一致的问题。
 
-大模型在系统中的定位是“理解与辅助”，不是“直接裁决”。DeepSeek API 可以用于解析自然语言、判断用户意图、补全 mention、选择知识库和生成别名扩展，但最终实体 ID 必须从知识库候选中产生，避免大模型幻觉导致错误链接。
+大模型在系统中的定位是“理解与辅助”，不是“直接裁决”。DeepSeek API 可以用于解析自然语言、判断用户意图、补全 mention、选择知识库和辅助判断 mention_type，但最终实体 ID 必须从知识库候选中产生，避免大模型幻觉导致错误链接。
 
 ## 三、总体技术方案
 
@@ -34,7 +34,7 @@ FastAPI 负责提供健康检查、知识库管理、实体导入和实体链接
 
 接口层主要包含 /health、/api/v1/knowledge-bases、/api/v1/knowledge-bases/{kb_id}/entities、/api/v1/entity-link 等接口。终端模式下，用户可以直接输入“李导演的《断背山》真是令人动人，其中实体是李导演和断背山”，系统自动解析文本、mention 和知识库，并调用同一个实体链接服务。
 
-知识库层需要同时支持示例知识库和 CCKS2019 知识库。示例知识库用于快速演示和单元测试，CCKS2019 用于正式实验和评测。对于大规模知识库，不能每次全量扫描，应建立 subject、alias、简称和归一化名称索引。
+知识库层需要同时支持示例知识库和 CCKS2019 知识库。示例知识库用于快速演示和单元测试，CCKS2019 用于正式实验和评测。对于大规模知识库，不能每次全量扫描，应分别建立标准名、别名和曾用名索引，并配合向量索引支撑召回。
 
 ## 五、LangGraph 工作流规划
 
@@ -48,25 +48,25 @@ review_route 节点负责处理低置信和歧义情况。当 top1 分数低于�
 
 ## 六、对话 Agent 规划
 
-对话 Agent 维护 DialogueState，包含当前知识库、当前文本、mention 列表、DeepSeek 生成的 mention_aliases 以及是否已经准备运行。用户可以多轮输入，例如先切换知识库，再输入文本，再补充 mention，最后输入“运行”触发实体链接。
+对话 Agent 维护 DialogueState，包含当前知识库、当前文本、mention 列表以及是否已经准备运行。用户可以多轮输入，例如先切换知识库，再输入文本，再补充 mention，最后输入“运行”触发实体链接。
 
 对话理解工作流包含 llm_understand、route_after_llm、finalize_action、rule_fallback 四个节点。配置 DeepSeek API 时优先使用大模型解析用户意图；未配置或低置信时，使用本地规则兜底，支持“帮助”“清空”“换成 CCKS 知识库”“文本：...”“实体是 ...”“运行”等命令。
 
-大模型输出的 mention_aliases 只作为召回扩展信号。例如“李导演”在上下文《断背山》中可以扩展为“李安”，但系统仍需在 CCKS 知识库中找到“李安”候选，并结合上下文完成最终打分。
+大模型在对话层只负责判断用户意图、抽取标准 LinkRequest 所需的 text 和 mentions，以及在需要时辅助判断 mention_type。候选实体必须由知识库召回层产生，不能由大模型直接扩展出额外候选名称并绕过知识库检索。
 
 ## 七、CCKS2019 数据接入方案
 
 CCKS2019-EL 数据集包含知识库、训练集和测试集。知识库中的每个实体需要转换为统一的 KnowledgeBaseEntity，包括 entity_id、canonical_name、aliases、entity_type、description、keywords 和 metadata。训练集中的 mention_data 可转换为 MentionRecord，用于评测和统计别名先验。
 
-候选生成阶段应优先使用别名索引，而不是逐实体扫描。索引字段包括 subject、alias、英文名、简称和归一化名称。对于“杭州”这类多义实体，候选列表中可能出现多个同名项，因此必须保留 top_k 候选并交给重排器做消歧。
+候选生成阶段应优先使用名称索引，而不是逐实体扫描。索引字段包括标准名、别名和曾用名。对于“杭州”这类多义实体，候选列表中可能出现多个同名项，因此必须保留候选池并交给重排器做消歧。
 
 训练集可以用于构建 alias prior，即统计某个 mention 更常链接到哪个 entity_id。例如 mention “断背山”在训练集中经常指向电影实体，则该实体获得先验加权。alias prior 只能作为小权重辅助，不能覆盖上下文证据。
 
 ## 八、候选召回与消歧方案
 
-候选召回采用多路召回策略：精确别名匹配、归一化名称匹配、包含关系匹配、模糊字符串相似度匹配、DeepSeek 别名扩展匹配和训练集 alias prior 匹配。召回结果统一转换为 CandidateScore，并保留 matched_alias、match_source、reasons 等解释字段。
+候选召回采用三段式策略。第一步是严格精确匹配，只在 mention.surface_form 与标准名、别名或曾用名完全相等时命中。第二步是在精确匹配失败后直接进入模糊召回，对每个实体对象的标准名、别名、曾用名分别计算字符串相似度，取该实体最高分作为模糊召回分数。第三步是在模糊候选数量不足时，使用 BGE 向量检索补足候选池。当前召回层主输出已经调整为轻量引用结构，即按 mention 产出候选 `entity_id`、`recall_source`、`match_slot` 和 `recall_status`，随后再由路由节点判断是直接链接、进入消歧、等待共指，还是进入 NIL 路径。`CandidateResult` 目前仍作为后半段兼容对象保留，用于衔接旧的重排、NIL 决策和证据生成逻辑，但不再是召回层的主输出格式。
 
-候选重排采用可解释加权公式，综合 alias_similarity、context_score、description_overlap、entity_type_bonus、canonical_bonus、llm_alias_expansion_bonus 和 alias_prior_bonus。这样既能处理标准别名命中，也能处理“李导演”这类依赖上下文的指称。
+候选重排采用可解释加权公式，综合 alias_similarity、context_score、description_overlap、entity_type_bonus、canonical_bonus 和 alias_prior_bonus。这样既能处理标准名称命中，也能利用上下文与先验证据完成消歧。
 
 消歧阶段根据 top1 分数、NIL 阈值和 top1/top2 分差做决策。若 top1 分数低于 nil_threshold，则输出 NIL；若 top1 与 top2 分差小于 ambiguity_margin，则输出 ambiguous 并进入复核；否则输出 linked。
 
@@ -90,7 +90,7 @@ HTTP 输出应包含 request_id、status、results、coreference_chains、summar
 
 评测数据主要来自 CCKS2019-EL 训练集和测试集。训练集可用于构建别名先验和调参，测试集用于最终评估。评价指标包括 Precision、Recall、F1、Accuracy、NIL Accuracy、Ambiguous 命中率以及 Top-K Recall。
 
-除整体指标外，还需要保留 badcase 分析。badcase 应记录原文、mention、gold entity、预测 entity、top 候选、置信度、触发节点和失败原因。常见失败类型包括候选召回失败、同名实体消歧失败、NIL 误判、共指错误和大模型别名扩展错误。
+除整体指标外，还需要保留 badcase 分析。badcase 应记录原文、mention、gold entity、预测 entity、top 候选、置信度、触发节点和失败原因。常见失败类型包括候选召回失败、同名实体消歧失败、NIL 误判、共指错误和大模型复核误判。
 
 评测脚本应支持批量运行，并输出 JSON 或 CSV 报告。为了答辩展示，可以选择若干典型样例，包括“李导演 -> 李安”“断背山 -> 电影实体”“DeepSeek 公司 -> NIL”“该公司 -> 前文机构共指”等。
 
@@ -102,7 +102,7 @@ HTTP 输出应包含 request_id、status、results、coreference_chains、summar
 
 第三阶段接入 CCKS2019。完成数据格式转换、别名索引、候选子集加载、alias prior 统计和批量评测脚本。此阶段需要重点解决同名实体和大知识库召回效率问题。
 
-第四阶段接入终端对话 Agent 和 DeepSeek。实现多轮状态维护、自然语言任务解析、mention_aliases 扩展和规则兜底，保证没有 API Key 时仍可演示基础流程。
+第四阶段接入终端对话 Agent 和 DeepSeek。实现多轮状态维护、自然语言任务解析、mention_type 辅助判断和规则兜底，保证没有 API Key 时仍可演示基础流程。
 
 第五阶段完善文档和展示。整理架构说明、数据流说明、接口说明、部署说明、评测报告和 badcase 报告，并准备终端演示脚本。
 
@@ -112,7 +112,7 @@ HTTP 输出应包含 request_id、status、results、coreference_chains、summar
 
 风险二是同名实体较多导致误链接。应对方式是引入上下文关键词、实体描述重叠、实体类型和 alias prior 共同打分，并在低置信时进入复核。
 
-风险三是大模型幻觉。应对方式是限制大模型只输出 action 和 mention_aliases，不允许直接输出最终 entity_id；最终 ID 必须来自知识库。
+风险三是大模型幻觉。应对方式是限制大模型只输出 action 或标准 LinkRequest 所需字段，不允许直接输出最终 entity_id；最终 ID 必须来自知识库候选集合。
 
 风险四是训练集和测试集字段不一致。应对方式是建立独立数据适配层，将外部数据统一转换为内部 Schema。
 

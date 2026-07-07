@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from app.core.candidate import CandidateResult
 from app.models.entity import Entity
 from app.models.enums import EntityType
-from app.models.request import LinkOptions, LinkRequest
+from app.models.request import LinkOptions, WorkflowLinkRequest as LinkRequest
 from app.services.llm_provider import SUPPORTED_API_KEY_ENV_NAMES
 from app.services.llm_reranker import LLMReranker
 

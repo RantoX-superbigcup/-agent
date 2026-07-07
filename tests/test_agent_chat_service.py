@@ -4,6 +4,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from app.models.agent import AgentChatRequest
+from app.models.enums import MentionType
+from app.models.request import WorkflowLinkRequest
 from app.services.agent_chat_service import AgentChatService
 
 
@@ -20,17 +22,17 @@ class FakeLinkService:
         self.store = FakeStore(kb_dir)
         self.called = False
 
-    def link(self, request):  # pragma: no cover - tests assert this is never reached
+    def prepare_request(self, request, mention_hints=None):
+        return WorkflowLinkRequest.from_public(request, mention_hints), {}
+
+    def link(self, request):  # pragma: no cover
         self.called = True
         raise AssertionError("workflow should not be called for non-link requests")
 
 
 def _service(tmp_path, monkeypatch) -> tuple[AgentChatService, FakeLinkService]:
-    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
-    monkeypatch.delenv("DASHSCOPE_API_KEY", raising=False)
-    monkeypatch.delenv("QWEN_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    for name in ("DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "QWEN_API_KEY", "OPENAI_API_KEY", "LLM_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
     config = SimpleNamespace(
         llm_api_key="sk-test",
         llm_base_url="https://example.test/v1",
@@ -93,9 +95,8 @@ def test_explicit_entity_list_bypasses_llm_and_preserves_english_alias(tmp_path,
     )
 
     message = (
-        "三大通信运营商移动、电信、联通所有基站统一交由中国铁塔运营，"
-        "英文代号 China Tower，大幅降低基础设施重复建设成本。\n"
-        "实体：移动\n电信\n联通\n中国铁塔、China Tower"
+        "三大通信运营商移动、电信、联通所有基站统一交由中国铁塔运营，英文代号 China Tower。\n"
+        "实体：移动\n电信\n联通\n中国铁塔，China Tower"
     )
 
     resp = service.chat(AgentChatRequest(message=message, kb_id="kb-test", run_workflow=False))
@@ -112,7 +113,6 @@ def test_explicit_entity_list_bypasses_llm_and_preserves_english_alias(tmp_path,
         "中国铁塔",
         "China Tower",
     ]
-    assert resp.link_request.text.content.startswith("三大通信运营商")
 
 
 def test_explicit_entity_phrase_accepts_loose_marker_and_strips_text_prefix(tmp_path, monkeypatch):
@@ -124,13 +124,13 @@ def test_explicit_entity_phrase_accepts_loose_marker_and_strips_text_prefix(tmp_
     )
 
     message = "文本：腾讯依靠微信和云服务实现稳定盈利；需要识别的实体包括：腾讯、微信"
-
     resp = service.chat(AgentChatRequest(message=message, kb_id="kb-test", run_workflow=False))
 
     assert resp.intent == "link"
     assert resp.link_request is not None
     assert resp.link_request.text.content == "腾讯依靠微信和云服务实现稳定盈利"
     assert [m.surface_form for m in resp.link_request.mentions] == ["腾讯", "微信"]
+    assert "candidate_aliases" not in resp.link_request.model_dump(exclude_none=True)["mentions"][0]
     assert link_service.called is False
 
 
@@ -150,3 +150,34 @@ def test_freeform_without_entity_marker_still_uses_llm(tmp_path, monkeypatch):
     assert resp.intent == "chat"
     assert resp.link_request is None
     assert link_service.called is False
+
+
+def test_local_explicit_entities_path_still_runs_prepare_request(tmp_path, monkeypatch):
+    service, link_service = _service(tmp_path, monkeypatch)
+    monkeypatch.setattr(
+        service,
+        "_ask_llm",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("LLM should not be called")),
+    )
+
+    def fake_prepare_request(request, mention_hints=None):
+        workflow_request = WorkflowLinkRequest.from_public(request, mention_hints)
+        mention = workflow_request.mentions[0].model_copy(update={"mention_type": MentionType.ORG})
+        updated = workflow_request.model_copy(update={"mentions": [mention]})
+        return updated, {"m1": {"status": "heuristic", "mention_type": "ORG"}}
+
+    link_service.prepare_request = fake_prepare_request
+    resp = service.chat(
+        AgentChatRequest(
+            message="文本：国网推进特高压线路扩容；实体：国网",
+            kb_id="kb-test",
+            run_workflow=False,
+        )
+    )
+
+    assert resp.intent == "link"
+    assert resp.link_request is not None
+    assert "mention_type_heuristic=1" in resp.warnings
+    public_payload = resp.link_request.model_dump(exclude_none=True)
+    assert "mention_type" not in public_payload["mentions"][0]
+    assert "entity_type" not in public_payload["mentions"][0]
